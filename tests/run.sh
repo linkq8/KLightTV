@@ -5,6 +5,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 python3 tests/check.py
 python3 tests/native_prayers_test.py
+python3 tests/prayer_table_day_test.py
 python3 tests/calendar_test.py
 python3 tests/regions_test.py
 python3 tests/installer_test.py

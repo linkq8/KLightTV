@@ -167,13 +167,17 @@ final class ScreenView extends View {
         paint.setStyle(Paint.Style.FILL);paint.setColor(options.contrast?0xC007110B:0xA8091810);canvas.drawRoundRect(box,24,24,paint);
         paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(2);paint.setColor(0x29DCB86F);canvas.drawRoundRect(box,24,24,paint);paint.setStyle(Paint.Style.FILL);
         boolean forecast="forecast".equals(data.panel);
-        text(canvas,forecast?"الأيام القادمة":"مواقيت الصلاة · "+data.city,350,203,618,32,bold,0xFFD6AF6B,Layout.Alignment.ALIGN_NORMAL);
-        line(canvas,104,244,968,244,0x80DCB86F,1);
-        String[] names=prayerNames();int minute=now.getHour()*60+now.getMinute();boolean highlighted=false;
+        int minute=now.getHour()*60+now.getMinute();LocalDate today=now.toLocalDate();
+        LocalDate shown=data.prayers==null?today:kw.urtv.shared.PrayerTableDay.select(today,minute,data.prayers[5]);
+        int[] tableTimes=data.tableTimes(shown);
+        text(canvas,forecast?"الأيام القادمة":kw.urtv.shared.PrayerTableDay.heading(today,shown)+" · "+data.city,104,188,864,30,bold,GOLD,Layout.Alignment.ALIGN_NORMAL);
+        if(!forecast)text(canvas,kw.urtv.shared.PrayerTableDay.dateLabel(shown),104,225,864,22,medium,SAND,Layout.Alignment.ALIGN_NORMAL);
+        line(canvas,104,256,968,256,0x80DCB86F,1);
+        String[] names=prayerNames();names[2]=shown.getDayOfWeek().getValue()==5?"الجمعة":"الظهر";boolean highlighted=false;
         for(int i=0;i<(forecast?5:6);i++) {
-            float top=264+i*83.5f;
-            String label=names[i],value=data.prayers==null?"—":options.time(data.prayers[i]);
-            boolean next=!forecast&&data.prayers!=null&&i==kw.urtv.shared.CalendarData.next(data.prayers,minute);
+            float top=274+i*82f;
+            String label=names[i],value=tableTimes==null?"—":options.time(tableTimes[i]);
+            boolean next=!forecast&&tableTimes!=null&&i==(shown.isAfter(today)?0:kw.urtv.shared.CalendarData.next(data.prayers,minute));
             if(next){paint.setColor(0x383F8D65);canvas.drawRoundRect(new RectF(90,top-4,982,top+66),12,12,paint);}
             if(next)highlighted=true;
             int color=next?0xFFFFE2A0:SAND;
@@ -187,8 +191,8 @@ final class ScreenView extends View {
                 }catch(Exception e){label=i==0?"جارٍ تحميل الطقس…":"";value="";}
             }
             text(canvas,label,670,top+3,298,40*options.prayerScale(),options.heavy?bold:medium,color,Layout.Alignment.ALIGN_NORMAL);
-            if(forecast||data.prayers==null)text(canvas,value,104,top,260,36,medium,WHITE,Layout.Alignment.ALIGN_OPPOSITE);
-            else kw.urtv.shared.TimeTiles.draw(canvas,kw.urtv.shared.TimeTiles.clock(data.prayers[i],options),kw.urtv.shared.TimeTiles.period(data.prayers[i],options),112,top-2,55*options.prayerScale(),bold,next?color:WHITE);
+            if(forecast||tableTimes==null)text(canvas,value,104,top,260,36,medium,WHITE,Layout.Alignment.ALIGN_OPPOSITE);
+            else kw.urtv.shared.TimeTiles.draw(canvas,kw.urtv.shared.TimeTiles.clock(tableTimes[i],options),kw.urtv.shared.TimeTiles.period(tableTimes[i],options),112,top-2,55*options.prayerScale(),bold,next?color:WHITE);
             if(i<(forecast?4:5))line(canvas,104,top+70,968,top+70,0x21DCB86F,1);
         }
     }
@@ -245,7 +249,14 @@ final class ScreenView extends View {
     private void line(Canvas canvas,float x,float y,float endX,float endY,int color,float width) {
         paint.setShader(null);paint.setColor(color);paint.setStrokeWidth(width);canvas.drawLine(x,y,endX,endY,paint);
     }
-    private void updateDescription(){if(data==null||data.prayers==null||now==null)return;StringBuilder b=new StringBuilder(options.time(now.getHour()*60+now.getMinute())).append(" · ").append(data.city).append(" · ").append(options.numbers(data.prayerSource));String[] names=prayerNames();if("prayers".equals(data.panel))for(int i=0;i<6;i++)b.append("\n").append(names[i]).append(" ").append(options.time(data.prayers[i]));setContentDescription(b.toString());}
+    private void updateDescription(){
+        if(data==null||data.prayers==null||now==null)return;
+        LocalDate today=now.toLocalDate(),shown=kw.urtv.shared.PrayerTableDay.select(today,now.getHour()*60+now.getMinute(),data.prayers[5]);
+        StringBuilder b=new StringBuilder(options.time(now.getHour()*60+now.getMinute())).append(" · ").append(data.city);
+        String[] names=prayerNames();names[2]=shown.getDayOfWeek().getValue()==5?"الجمعة":"الظهر";
+        if("prayers".equals(data.panel)){b.append("\n").append(kw.urtv.shared.PrayerTableDay.heading(today,shown)).append(" · ").append(options.numbers(kw.urtv.shared.PrayerTableDay.dateLabel(shown)));int[] times=data.tableTimes(shown);for(int i=0;i<6;i++)b.append("\n").append(names[i]).append(" ").append(options.time(times[i]));}
+        setContentDescription(b.toString());
+    }
     void memoryPressure(){kw.urtv.shared.DisplayOptions.memoryPressure=true;imageEdge=1280;photoSlot=Long.MIN_VALUE;if(attached)updatePhoto();}
     private void text(Canvas canvas,String text,float x,float y,float width,float size,Typeface font,int color,Layout.Alignment align) {
         text=options.numbers(text);if(options.latin&&font==display)font=bold;if(options.heavy&&(font==regular||font==medium))font=bold;

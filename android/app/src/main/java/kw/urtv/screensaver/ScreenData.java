@@ -70,6 +70,7 @@ final class ScreenData {
     }
     private kw.urtv.shared.RegionSchedule.Result schedule(LocalDate d){return calendar.resolve(d,latitude,longitude,adjustments,PrayerTimes.calculate(d,latitude,longitude));}
     private void applySchedule(LocalDate d){kw.urtv.shared.RegionSchedule.Result result=schedule(d);prayers=result.times;official=result.verified;prayerSource=result.source;kw.urtv.shared.CalendarData.Day base=calendar.get(d);hijri=base==null?"":base.hijri;if(official)lastPrayer=System.currentTimeMillis();}
+    int[] tableTimes(LocalDate shown){return prayers==null?null:shown.toString().equals(day)?prayers:schedule(shown).times;}
     int[] tomorrow(){return schedule(LocalDate.parse(day).plusDays(1)).times;}
     boolean tomorrowOfficial(){return schedule(LocalDate.parse(day).plusDays(1)).verified;}
     boolean weatherStale(){return lastWeather>0&&System.currentTimeMillis()-lastWeather>3600000L;}

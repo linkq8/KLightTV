@@ -47,7 +47,7 @@ final class HomeCard {
     private final Activity activity;
     private final FrameLayout surface;
     private final LinearLayout table, weather;
-    private final TextView heading, condition, weatherDetails;
+    private final TextView heading, tableDate, condition, weatherDetails;
     private final TextView[] labels = new TextView[6], values = new TextView[6];
     private final Typeface medium, bold;
     private final Handler main = new Handler(Looper.getMainLooper());
@@ -88,7 +88,8 @@ final class HomeCard {
         table.setBackground(background);
         surface.addView(table,new FrameLayout.LayoutParams(1,dp(234),Gravity.LEFT|Gravity.TOP));
         heading=text(16,GOLD); heading.setText("مواقيت اليوم");
-        table.addView(heading,new LinearLayout.LayoutParams(-1,dp(25)));
+        table.addView(heading,new LinearLayout.LayoutParams(-1,dp(22)));
+        tableDate=text(12,SAND);tableDate.setTypeface(medium);table.addView(tableDate,new LinearLayout.LayoutParams(-1,dp(17)));
         for(int i=0;i<6;i++) {
             FrameLayout row=new FrameLayout(activity);
             labels[i]=text(20,SAND); values[i]=text(23,0xFFFFFDF6);
@@ -220,7 +221,7 @@ final class HomeCard {
         float p=options.prayerScale(),t=options.textScale();int rowHeight=Math.round(32*p);
         for(int i=0;i<6;i++){labels[i].setTextSize(20*p);values[i].setTextSize(23*p);labels[i].setTypeface(medium,options.heavy?Typeface.BOLD:Typeface.NORMAL);values[i].setTypeface(medium,options.heavy?Typeface.BOLD:Typeface.NORMAL);View row=(View)labels[i].getParent();row.getLayoutParams().height=dp(rowHeight);}
         nextTiles.getLayoutParams().height=dp(Math.round(38*options.nextScale()));nextTimeTiles.getLayoutParams().height=dp(Math.round(38*options.nextScale()));
-        table.getLayoutParams().height=dp(42+6*rowHeight);surface.getLayoutParams().height=dp(Math.max(320,42+6*rowHeight));
+        table.getLayoutParams().height=dp(56+6*rowHeight);surface.getLayoutParams().height=dp(Math.max(320,56+6*rowHeight));
         heading.setTextSize(15);condition.setTextSize(28*t);weatherDetails.setTextSize(18*t);nextPrayer.setTextSize(14*options.nextScale());remainingLabel.setTextSize(14*options.nextScale());
         nextPrayer.setTypeface(medium,options.heavy?Typeface.BOLD:Typeface.NORMAL);
         ((FrameLayout.LayoutParams)weather.getLayoutParams()).topMargin=dp(80+options.reading*14);
@@ -228,9 +229,13 @@ final class HomeCard {
     }
     private void render() {
         table.setVisibility("none".equals(panel)?View.GONE:View.VISIBLE);
-        heading.setText("forecast".equals(panel)?"الأيام القادمة":"مواقيت الصلاة · "+city);
-        String[] names={"الفجر","الشروق",LocalDate.now(KUWAIT).getDayOfWeek().getValue()==5?"الجمعة":"الظهر","العصر","المغرب","العشاء"};
-        ZonedDateTime now=ZonedDateTime.now(KUWAIT);int minute=now.getHour()*60+now.getMinute();boolean highlighted=false;
+        ZonedDateTime now=ZonedDateTime.now(KUWAIT);int minute=now.getHour()*60+now.getMinute();
+        LocalDate today=now.toLocalDate(),shown=prayers==null?today:kw.urtv.shared.PrayerTableDay.select(today,minute,prayers[5]);
+        int[] tableTimes=shown.equals(today)?prayers:schedule(shown).times;
+        heading.setText("forecast".equals(panel)?"الأيام القادمة":kw.urtv.shared.PrayerTableDay.heading(today,shown)+" · "+city);
+        tableDate.setText(options.numbers(kw.urtv.shared.PrayerTableDay.dateLabel(shown)));tableDate.setVisibility("forecast".equals(panel)?View.GONE:View.VISIBLE);
+        String[] names={"الفجر","الشروق",shown.getDayOfWeek().getValue()==5?"الجمعة":"الظهر","العصر","المغرب","العشاء"};
+        boolean highlighted=false;
         for(int i=0;i<6;i++) {
             View row=(View)labels[i].getParent(); row.setVisibility(View.VISIBLE);
             boolean forecast="forecast".equals(panel);tiles[i].setVisibility(forecast?View.GONE:View.VISIBLE);values[i].setVisibility(forecast?View.VISIBLE:View.GONE);
@@ -244,9 +249,9 @@ final class HomeCard {
                 }catch(Exception e){labels[i].setText(i==0?"جارٍ تحميل الطقس…":"");values[i].setText("");}
                 labels[i].setTextColor(SAND);values[i].setTextColor(SAND);
             } else {
-                labels[i].setText(names[i]);values[i].setText(prayers==null?"—":time(prayers[i]));
-                if(prayers!=null)tiles[i].update(kw.urtv.shared.TimeTiles.clock(prayers[i],options),kw.urtv.shared.TimeTiles.period(prayers[i],options),bold,0xFFFFFDF6,names[i]+" "+time(prayers[i]));
-                boolean next=prayers!=null&&i==kw.urtv.shared.CalendarData.next(prayers,minute);
+                labels[i].setText(names[i]);values[i].setText(tableTimes==null?"—":time(tableTimes[i]));
+                if(tableTimes!=null)tiles[i].update(kw.urtv.shared.TimeTiles.clock(tableTimes[i],options),kw.urtv.shared.TimeTiles.period(tableTimes[i],options),bold,0xFFFFFDF6,names[i]+" "+time(tableTimes[i]));
+                boolean next=tableTimes!=null&&i==(shown.isAfter(today)?0:kw.urtv.shared.CalendarData.next(prayers,minute));
                 row.setBackgroundColor(next?0x382F7052:android.graphics.Color.TRANSPARENT);
                 if(next)highlighted=true;
                 labels[i].setTextColor(next?0xFFFFE2A0:SAND);values[i].setTextColor(next?0xFFFFE2A0:0xFFFFFDF6);
