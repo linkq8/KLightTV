@@ -1,24 +1,20 @@
 # KLightTV
 
-A quiet, native Arabic Android TV / Google TV home screen and screensaver for Kuwait: clock, date, daily prayers, next-prayer countdown, weather and local Kuwait wallpapers.
+A lightweight, responsive Arabic home screen and screensaver for Android TV: clock, date, daily prayers, next-prayer countdown, Kuwait City weather and local4K wallpapers. Remote controls let you choose the city and configure the prayer display. The sunset wallpaper is AI-enhanced and upscaled. Streaming apps can be arranged or hidden; KLightTV includes no advertising or analytics SDK.
 
-![Native home screen on the emulator](images/home-4k.png)
+![Home screen on the emulator](images/home-4k.png)
 
-Android 8+ is required. Current screenshots and validation use an Android 14 emulator; OEM Home and screensaver support varies. Samsung Tizen and LG webOS are unsupported.
+## Quick installation
 
-Download both APKs from [Releases](https://github.com/linkq8/KLightTV/releases), install the screensaver and then the home app, and select them in your TV settings. [Full installation guide](INSTALL.md), [architecture diagrams](ARCHITECTURE.md) and [build instructions](BUILD.md).
+1. Open **Settings → System / Device Preferences → About** and press **Android TV OS Build / Build number seven times** to enable Developer Mode.
+2. Enable **Debugging** and network / Wireless Debugging where supported.
+3. Connect the TV and computer to the **same network**. Find the TV's **IP address and debugging port** in its network / debugging settings.
+4. Open this repository in **Codex or Claude Code**, provide the TV address, and ask it to install and configure KLightTV. Approve the TV's debugging prompt and pair if requested.
 
-```sh
-adb -s TV_IP:PORT install -r KLightTV-screensaver-android-tv.apk
-adb -s TV_IP:PORT install -r KLightTV-home-android-tv.apk
-```
+Example IP: `192.0.2.50` (documentation only; replace it with your TV's actual address and port).
 
-Replace the address and port with your actual authorized device. Retained package identifiers `kw.urtv.home` and `kw.urtv.screensaver` allow upgrades from the previous Kuwait builds when signed with the same key. CI builds are development artifacts with a different debug signature.
+Android TV / Google TV8+ with network ADB support is required. [Downloads](https://github.com/linkq8/KLightTV/releases) · [Arabic installation guide](INSTALL.md).
 
-The composed sunset wallpaper is AI-enhanced and exported at3840×2160 from a1672×941 generated image; it is upscaled artwork, not native4K photography. Three separately credited photographs are also bundled. See [image sources](PHOTO-CREDITS.md).
+![Screensaver on the emulator](images/screensaver-4k.png)
 
-Prayer times use a verified Kuwait City record from the Al-Ojairi calendar when available; calculated fallback times are labelled accordingly. Ramadan tables require source data and local month announcements. The optional desktop app checklist uses authorized ADB, lets the user review changes, and protects essential services including the microphone. It cannot guarantee removal of all OEM tracking.
-
-Streaming logos in screenshots use isolated emulator preview apps; streaming services are not bundled. Install your own official applications and accounts.
-
-Based on [tshi-dev/UrTV](https://github.com/tshi-dev/UrTV), with a home component derived from [tv-home](https://github.com/mihirgupta0900/tv-home). Preserve the [component MIT notice](../android/launcher/LICENSE-tv-home) and [third-party credits](THIRD-PARTY.md).
+Streaming tiles shown are emulator preview apps; install your own official streaming applications.
