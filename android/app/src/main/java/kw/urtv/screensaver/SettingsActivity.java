@@ -84,6 +84,10 @@ public class SettingsActivity extends Activity {
         row("إمساكية رمضان", "مدينة الكويت · بيانات رزنامة العجيري", R.drawable.ic_star, () -> startActivity(new Intent(this,kw.urtv.shared.CalendarActivity.class)));
         header("الموقع");
         row("المدينة", prefs.city()[0], R.drawable.ic_place, new Runnable() { public void run() { pickCity(); } });
+        row("تصحيح المواقيت بالدقائق", "اختياري · محفوظ لكل منطقة", R.drawable.ic_settings, () -> startActivity(new Intent(this,PrayerAdjustActivity.class)));
+        row("مصدر مواقيت المنطقة", "الفرق المنشور أو الحساب بالإحداثيات", R.drawable.ic_place, () -> {String[] c=prefs.city();kw.urtv.shared.RegionCatalog.Region region=kw.urtv.shared.RegionCatalog.find(Double.parseDouble(c[1]),Double.parseDouble(c[2]));new AlertDialog.Builder(this,DIALOG_THEME).setTitle(c[0]).setMessage((region==null?"حساب بالإحداثيات":region.description())+"\n"+(region!=null&&region.offset!=null?"جدول العجيري لمدينة الكويت + فرق الرزنامة المنشور\n"+kw.urtv.shared.RegionCatalog.OFFSET_SOURCE:"لم يتوفر فرق رسمي موثق لهذه المنطقة. تُحسب يوميًا بطريقة الكويت: الفجر 18° والعشاء 17.5°.\nالموقع المختار: "+c[1]+" / "+c[2]+"\nالخيران: سجل GeoNames285790 عند اختيارها")+"\nالتصحيح اليدوي يظهر بوسم معدّلة.").setPositiveButton("حسنًا",null).show();});
+        row("خيارات القراءة", "الحجم والخط والتباين والأرقام", R.drawable.ic_eye, () -> startActivity(new Intent(this,kw.urtv.shared.DisplaySettingsActivity.class)));
+        row("أداء الجهاز", "تلقائي · عادي · خفيف", R.drawable.ic_settings, () -> startActivity(new Intent(this,kw.urtv.shared.PerformanceActivity.class)));
 
         header("بجانب الساعة");
         row("المحتوى", Prefs.panelLabel(prefs.panel()), R.drawable.ic_eye, new Runnable() { public void run() { pickPanel(false); } });

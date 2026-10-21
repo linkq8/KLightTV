@@ -72,7 +72,11 @@
             android:name=".ConfigProvider"
             android:authorities="kw.urtv.screensaver.config"
             android:exported="true"
-            android:readPermission="kw.urtv.screensaver.READ_CONFIG" />
+            android:readPermission="kw.urtv.screensaver.READ_CONFIG"
+            android:writePermission="kw.urtv.screensaver.READ_CONFIG" />
         <activity android:name="kw.urtv.shared.CalendarActivity" android:exported="true" android:screenOrientation="landscape" />
-    </application>
+    <activity android:name="kw.urtv.shared.DisplaySettingsActivity" android:exported="false" android:screenOrientation="landscape" />
+<activity android:name="kw.urtv.shared.PerformanceActivity" android:exported="false" android:screenOrientation="landscape" />
+<activity android:name=".PrayerAdjustActivity" android:exported="false" android:screenOrientation="landscape" />
+</application>
 </manifest>

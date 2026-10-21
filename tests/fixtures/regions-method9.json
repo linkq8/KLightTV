@@ -1,0 +1,222 @@
+{
+  "source": "AlAdhan official API calculation reference; not Al-Ojairi regional official times",
+  "retrieved": "2026-10-21",
+  "cases": [
+    {
+      "date": "21-01-2026",
+      "region": "khiran",
+      "lat": 28.663,
+      "lon": 48.379,
+      "url": "https://api.aladhan.com/v1/timings/21-01-2026?latitude=28.663&longitude=48.379&method=9&timezonestring=Asia%2FKuwait",
+      "method": {
+        "id": 9,
+        "name": "Kuwait",
+        "params": {
+          "Fajr": 18,
+          "Isha": 17.5
+        },
+        "location": {
+          "latitude": 29.375859,
+          "longitude": 47.9774052
+        }
+      },
+      "times": {
+        "Fajr": "05:17",
+        "Sunrise": "06:39",
+        "Dhuhr": "11:58",
+        "Asr": "14:56",
+        "Maghrib": "17:17",
+        "Isha": "18:36"
+      }
+    },
+    {
+      "date": "21-01-2026",
+      "region": "kuwait",
+      "lat": 29.3759,
+      "lon": 47.9774,
+      "url": "https://api.aladhan.com/v1/timings/21-01-2026?latitude=29.3759&longitude=47.9774&method=9&timezonestring=Asia%2FKuwait",
+      "method": {
+        "id": 9,
+        "name": "Kuwait",
+        "params": {
+          "Fajr": 18,
+          "Isha": 17.5
+        },
+        "location": {
+          "latitude": 29.375859,
+          "longitude": 47.9774052
+        }
+      },
+      "times": {
+        "Fajr": "05:19",
+        "Sunrise": "06:42",
+        "Dhuhr": "11:59",
+        "Asr": "14:56",
+        "Maghrib": "17:17",
+        "Isha": "18:37"
+      }
+    },
+    {
+      "date": "21-06-2026",
+      "region": "khiran",
+      "lat": 28.663,
+      "lon": 48.379,
+      "url": "https://api.aladhan.com/v1/timings/21-06-2026?latitude=28.663&longitude=48.379&method=9&timezonestring=Asia%2FKuwait",
+      "method": {
+        "id": 9,
+        "name": "Kuwait",
+        "params": {
+          "Fajr": 18,
+          "Isha": 17.5
+        },
+        "location": {
+          "latitude": 29.375859,
+          "longitude": 47.9774052
+        }
+      },
+      "times": {
+        "Fajr": "03:15",
+        "Sunrise": "04:49",
+        "Dhuhr": "11:48",
+        "Asr": "15:20",
+        "Maghrib": "18:47",
+        "Isha": "20:19"
+      }
+    },
+    {
+      "date": "21-06-2026",
+      "region": "kuwait",
+      "lat": 29.3759,
+      "lon": 47.9774,
+      "url": "https://api.aladhan.com/v1/timings/21-06-2026?latitude=29.3759&longitude=47.9774&method=9&timezonestring=Asia%2FKuwait",
+      "method": {
+        "id": 9,
+        "name": "Kuwait",
+        "params": {
+          "Fajr": 18,
+          "Isha": 17.5
+        },
+        "location": {
+          "latitude": 29.375859,
+          "longitude": 47.9774052
+        }
+      },
+      "times": {
+        "Fajr": "03:13",
+        "Sunrise": "04:49",
+        "Dhuhr": "11:50",
+        "Asr": "15:24",
+        "Maghrib": "18:51",
+        "Isha": "20:23"
+      }
+    },
+    {
+      "date": "21-10-2026",
+      "region": "khiran",
+      "lat": 28.663,
+      "lon": 48.379,
+      "url": "https://api.aladhan.com/v1/timings/21-10-2026?latitude=28.663&longitude=48.379&method=9&timezonestring=Asia%2FKuwait",
+      "method": {
+        "id": 9,
+        "name": "Kuwait",
+        "params": {
+          "Fajr": 18,
+          "Isha": 17.5
+        },
+        "location": {
+          "latitude": 29.375859,
+          "longitude": 47.9774052
+        }
+      },
+      "times": {
+        "Fajr": "04:32",
+        "Sunrise": "05:51",
+        "Dhuhr": "11:31",
+        "Asr": "14:46",
+        "Maghrib": "17:11",
+        "Isha": "18:28"
+      }
+    },
+    {
+      "date": "21-10-2026",
+      "region": "kuwait",
+      "lat": 29.3759,
+      "lon": 47.9774,
+      "url": "https://api.aladhan.com/v1/timings/21-10-2026?latitude=29.3759&longitude=47.9774&method=9&timezonestring=Asia%2FKuwait",
+      "method": {
+        "id": 9,
+        "name": "Kuwait",
+        "params": {
+          "Fajr": 18,
+          "Isha": 17.5
+        },
+        "location": {
+          "latitude": 29.375859,
+          "longitude": 47.9774052
+        }
+      },
+      "times": {
+        "Fajr": "04:34",
+        "Sunrise": "05:53",
+        "Dhuhr": "11:33",
+        "Asr": "14:47",
+        "Maghrib": "17:12",
+        "Isha": "18:29"
+      }
+    },
+    {
+      "date": "21-12-2026",
+      "region": "khiran",
+      "lat": 28.663,
+      "lon": 48.379,
+      "url": "https://api.aladhan.com/v1/timings/21-12-2026?latitude=28.663&longitude=48.379&method=9&timezonestring=Asia%2FKuwait",
+      "method": {
+        "id": 9,
+        "name": "Kuwait",
+        "params": {
+          "Fajr": 18,
+          "Isha": 17.5
+        },
+        "location": {
+          "latitude": 29.375859,
+          "longitude": 47.9774052
+        }
+      },
+      "times": {
+        "Fajr": "05:11",
+        "Sunrise": "06:35",
+        "Dhuhr": "11:44",
+        "Asr": "14:35",
+        "Maghrib": "16:54",
+        "Isha": "18:16"
+      }
+    },
+    {
+      "date": "21-12-2026",
+      "region": "kuwait",
+      "lat": 29.3759,
+      "lon": 47.9774,
+      "url": "https://api.aladhan.com/v1/timings/21-12-2026?latitude=29.3759&longitude=47.9774&method=9&timezonestring=Asia%2FKuwait",
+      "method": {
+        "id": 9,
+        "name": "Kuwait",
+        "params": {
+          "Fajr": 18,
+          "Isha": 17.5
+        },
+        "location": {
+          "latitude": 29.375859,
+          "longitude": 47.9774052
+        }
+      },
+      "times": {
+        "Fajr": "05:13",
+        "Sunrise": "06:38",
+        "Dhuhr": "11:46",
+        "Asr": "14:35",
+        "Maghrib": "16:54",
+        "Isha": "18:17"
+      }
+    }
+  ]
+}

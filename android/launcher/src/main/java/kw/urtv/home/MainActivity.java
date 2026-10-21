@@ -106,6 +106,12 @@ public class MainActivity extends Activity {
     private PopupWindow inputsPopup;
     private HomeCard homeCard;
     private kw.urtv.shared.CalendarData calendarStore;
+    private kw.urtv.shared.DisplayOptions displayOptions;
+    private View readingShade;
+    private boolean lite;
+    private boolean visible;
+    private int imageEdge=3840;
+    private String displayIdentity="";
 
     private final BroadcastReceiver tick = new BroadcastReceiver() {
         @Override public void onReceive(Context c, Intent i) { updateClock(); updateWifi(); }
@@ -123,6 +129,8 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
+        displayOptions=kw.urtv.shared.DisplayOptions.load(this);
+        kw.urtv.shared.DisplayOptions.Device device=displayOptions.device(this);lite=device.lite;imageEdge=device.edge;
         calendarStore=new kw.urtv.shared.CalendarData(this);
         dockApps = loadDock();
         liveTvPkg = getString(R.string.live_tv_package);
@@ -146,6 +154,13 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        visible=true;
+        displayOptions=kw.urtv.shared.DisplayOptions.load(this);kw.urtv.shared.DisplayOptions.Device device=displayOptions.device(this);lite=device.lite;imageEdge=device.edge;
+        String identity=displayOptions.json()+":"+imageEdge;if(!identity.equals(displayIdentity)){displayIdentity=identity;wallIndex=-1;wallChangedAt=0;}
+        readingShade.setBackgroundColor(Color.argb(displayOptions.overlayAlpha(),0,0,0));
+        clock.setTypeface(displayOptions.latin?font("medium"):font("display"));
+        clock.setTextSize(58*displayOptions.textScale());date.setTextSize(14*displayOptions.textScale());greeting.setTextSize(15*displayOptions.textScale());
+        title.setVisibility(displayOptions.prayerScale()>1.05f?View.GONE:View.VISIBLE);
         IntentFilter tf = new IntentFilter(Intent.ACTION_TIME_TICK);
         tf.addAction(Intent.ACTION_TIME_CHANGED);
         tf.addAction(Intent.ACTION_TIMEZONE_CHANGED);
@@ -170,12 +185,15 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
+        visible=false;
         handler.removeCallbacks(rotateWallpaper);
         unregisterReceiver(tick);
         if (inputsPopup != null) inputsPopup.dismiss();
         homeCard.pause();
     }
 
+    @Override protected void onStop(){super.onStop();wallFront.setImageDrawable(null);wallBack.setImageDrawable(null);wallIndex=-1;}
+    @Override public void onTrimMemory(int level){super.onTrimMemory(level);if(kw.urtv.shared.HardwarePolicy.shouldTrim(level)){kw.urtv.shared.DisplayOptions.memoryPressure=true;lite=true;imageEdge=1280;wallIndex=-1;if(hasWindowFocus())nextWallpaper();}}
     @Override
     protected void onDestroy() {
         unregisterReceiver(packages);
@@ -215,6 +233,7 @@ public class MainActivity extends Activity {
         scrim.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
                 new int[]{0xB3000000, 0x70000000, 0x50000000, 0x8C000000, 0xE6000000}));
         root.addView(scrim, new FrameLayout.LayoutParams(-1, -1));
+        readingShade=new View(this);root.addView(readingShade,new FrameLayout.LayoutParams(-1,-1));
         gridShade = new View(this);
         gridShade.setBackgroundColor(0xB3000000);
         gridShade.setAlpha(0f);
@@ -359,7 +378,7 @@ public class MainActivity extends Activity {
             ((TextView) v).setTextColor(has ? 0xFF111111 : 0xE6FFFFFF);
             ic.setTint(has ? 0xFF111111 : 0xE6FFFFFF);
             v.animate().scaleX(has ? 1.03f : 1f).scaleY(has ? 1.03f : 1f)
-                    .setInterpolator(new DecelerateInterpolator()).setDuration(120).start();
+                    .setInterpolator(new DecelerateInterpolator()).setDuration(lite?0:120).start();
             if (has) { lastFocusedId = v.getId(); scroll.smoothScrollTo(0, 0); fadeGlow(1f); }
         });
         return p;
@@ -498,20 +517,20 @@ public class MainActivity extends Activity {
             float s = has ? 1.045f : 1f;
             v.animate().scaleX(s).scaleY(s).translationZ(has ? dp(14) : 0)
                     .setInterpolator(has ? new DecelerateInterpolator() : new DecelerateInterpolator())
-                    .setDuration(120).start();
-            shine.animate().alpha(has ? 1f : 0f).setDuration(160).start();
-            label.animate().alpha(has ? 1f : 0f).translationY(has ? dp(4) : 0).setDuration(200).start();
+                    .setDuration(lite?0:120).start();
+            shine.animate().alpha(has ? 1f : 0f).setDuration(lite?0:160).start();
+            label.animate().alpha(has ? 1f : 0f).translationY(has ? dp(4) : 0).setDuration(lite?0:200).start();
             if (!has) return;
             lastFocusedId = v.getId();
             if (inDock) {
                 title.setText(app.label);
-                title.animate().alpha(1f).setDuration(200).start();
+                title.animate().alpha(1f).setDuration(lite?0:200).start();
                 animateGlow(app.color);
                 fadeGlow(1f);
                 scroll.smoothScrollTo(0, 0);
             } else {
                 fadeGlow(0.35f);
-                title.animate().alpha(0f).setDuration(200).start();
+                title.animate().alpha(0f).setDuration(lite?0:200).start();
                 scrollToRow(box);
             }
         });
@@ -761,9 +780,9 @@ public class MainActivity extends Activity {
         Calendar now = Calendar.getInstance(java.util.TimeZone.getTimeZone("Asia/Kuwait"));
         int h = now.get(Calendar.HOUR_OF_DAY);
         greeting.setText(h < 4 ? "تصبح على خير" : h < 12 ? "صباح الخير" : "مساء الخير");
-        int hh = h % 12 == 0 ? 12 : h % 12;   // always 12-hour
+        int hh = displayOptions.hour24 ? h : h % 12 == 0 ? 12 : h % 12;
         clock.setText(arabicDigits(hh + ":" + String.format(Locale.ROOT, "%02d", now.get(Calendar.MINUTE))));
-        ampm.setText(h < 12 ? "ص" : "م");
+        ampm.setText(displayOptions.hour24 ? "" : h < 12 ? "ص" : "م");
         String hijri = "";
         try {
             android.icu.text.SimpleDateFormat f = new android.icu.text.SimpleDateFormat(
@@ -779,7 +798,8 @@ public class MainActivity extends Activity {
         date.setText(arabicDigits(hijri.isEmpty() ? greg : hijri + "  ·  " + greg));
     }
 
-    private static String arabicDigits(String s) {
+    private String arabicDigits(String s) {
+        if(displayOptions!=null)return displayOptions.numbers(s);
         StringBuilder b = new StringBuilder(s.length());
         for (char c : s.toCharArray()) b.append(c >= '0' && c <= '9' ? (char) ('٠' + (c - '0')) : c);
         return b.toString();
@@ -817,14 +837,15 @@ public class MainActivity extends Activity {
     }
 
     private void animateGlow(int to) {
+        if(lite)return;
         if (glowAnim != null) glowAnim.cancel();
         if (glowColor != to) setGlow(to);
     }
 
     private void fadeGlow(float alpha) {
-        glow.animate().alpha(alpha).setDuration(300).start();
+        glow.animate().alpha(alpha).setDuration(lite?0:300).start();
         // The grid sits over the photo's busiest middle part, so dim it while browsing apps.
-        gridShade.animate().alpha(alpha < 1f ? 1f : 0f).setDuration(300).start();
+        gridShade.animate().alpha(alpha < 1f ? 1f : 0f).setDuration(lite?0:300).start();
     }
 
     // ---------------------------------------------------------------- wallpaper
@@ -838,9 +859,11 @@ public class MainActivity extends Activity {
     private Bitmap decodeWallpaper(String asset) throws java.io.IOException {
         int width=getResources().getDisplayMetrics().widthPixels;
         int height=getResources().getDisplayMetrics().heightPixels;
+        float cap=Math.min(1f,imageEdge/(float)Math.max(width,height));width=Math.round(width*cap);height=Math.round(height*cap);
+        final int targetWidth=width,targetHeight=height;
         if(android.os.Build.VERSION.SDK_INT>=28) {
             return ImageDecoder.decodeBitmap(ImageDecoder.createSource(getAssets(), asset), (decoder, info, source) -> {
-                float scale=Math.min(1f,Math.max((float)width/info.getSize().getWidth(),(float)height/info.getSize().getHeight()));
+                float scale=Math.min(1f,Math.max((float)targetWidth/info.getSize().getWidth(),(float)targetHeight/info.getSize().getHeight()));
                 decoder.setTargetSize(Math.max(1,Math.round(info.getSize().getWidth()*scale)),Math.max(1,Math.round(info.getSize().getHeight()*scale)));
                 decoder.setAllocator(ImageDecoder.ALLOCATOR_SOFTWARE);
                 decoder.setMemorySizePolicy(ImageDecoder.MEMORY_POLICY_LOW_RAM);
@@ -848,6 +871,8 @@ public class MainActivity extends Activity {
         }
         BitmapFactory.Options o = new BitmapFactory.Options();
         o.inPreferredConfig = Bitmap.Config.RGB_565;
+        o.inJustDecodeBounds=true;try(java.io.InputStream in=getAssets().open(asset)){BitmapFactory.decodeStream(in,null,o);}
+        int sample=1;while(o.outWidth/(sample*2)>=width&&o.outHeight/(sample*2)>=height)sample*=2;o.inSampleSize=sample;o.inJustDecodeBounds=false;
         try(java.io.InputStream in=getAssets().open(asset)) {
             Bitmap bitmap=BitmapFactory.decodeStream(in,null,o);
             if(bitmap==null)return null;
@@ -875,6 +900,7 @@ public class MainActivity extends Activity {
             {
                 try { bm = decodeWallpaper(fallback); }
                 catch (java.io.IOException ignored) { }
+                catch (OutOfMemoryError low){kw.urtv.shared.DisplayOptions.memoryPressure=true;lite=true;imageEdge=1280;try{bm=decodeWallpaper(fallback);}catch(java.io.IOException|OutOfMemoryError ignored){}}
             }
             Bitmap result = bm;
             runOnUiThread(() -> showWallpaper(result));
@@ -884,7 +910,7 @@ public class MainActivity extends Activity {
 
     private void showWallpaper(Bitmap bm) {
         if (bm == null) return;
-        if(isDestroyed()){bm.recycle();return;}
+        if(isDestroyed()||!visible){bm.recycle();return;}
         // Swap roles: the old front becomes the back, the new photo fades in on top.
         ImageView old = wallFront;
         wallFront = wallBack;
@@ -893,6 +919,7 @@ public class MainActivity extends Activity {
         root.removeView(wallFront);
         root.addView(wallFront, 1, new FrameLayout.LayoutParams(-1, -1));
         wallFront.setImageBitmap(bm);
+        if(lite){wallFront.setAlpha(1f);wallBack.setImageDrawable(null);firstWallpaper=false;return;}
         wallFront.setAlpha(0f);
         wallFront.animate().alpha(1f).setDuration(firstWallpaper ? 600 : 2000).withEndAction(() -> {
             wallBack.setImageDrawable(null); // release the previous photo
@@ -941,6 +968,7 @@ public class MainActivity extends Activity {
     // ---------------------------------------------------------------- entrance
 
     private void playEntrance() {
+        if(lite)return;
         View header = hero.getChildAt(0);
         header.setAlpha(0f);
         header.setTranslationY(-dp(12));

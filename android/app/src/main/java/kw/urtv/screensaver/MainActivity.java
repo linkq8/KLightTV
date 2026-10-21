@@ -9,6 +9,7 @@ import android.view.WindowManager;
 /** Full-screen preview of the screensaver; any remote key closes it. */
 public class MainActivity extends Activity {
     private ScreenView screen;
+    @Override public void onTrimMemory(int level){super.onTrimMemory(level);if(kw.urtv.shared.HardwarePolicy.shouldTrim(level)&&screen!=null)screen.memoryPressure();}
 
     @Override
     protected void onCreate(Bundle b) {

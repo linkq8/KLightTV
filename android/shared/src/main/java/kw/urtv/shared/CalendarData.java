@@ -27,6 +27,7 @@ public final class CalendarData {
     }
     public CalendarData(Context c){cache=c.getSharedPreferences("alojeiri_dates",0);try(InputStream in=c.getAssets().open("calendar/alojeiri.json")){bundled=new JSONObject(read(in)).getJSONObject("days");}catch(Exception ignored){}}
     public synchronized Day get(LocalDate date){String key=date.toString();try {String saved=cache.getString(key,null);JSONObject obj=saved==null?bundled.optJSONObject(key):new JSONObject(saved);return obj==null?null:new Day(key,obj);}catch(Exception e){return null;}}
+    public RegionSchedule.Result resolve(LocalDate date,double lat,double lon,int[] adjustments,int[] calculated){Day d=get(date);return RegionSchedule.resolve(lat,lon,d==null?null:d.times,calculated,adjustments);}
     public static boolean isKuwaitCity(double lat,double lon){return Math.abs(lat-29.3759)<.015&&Math.abs(lon-47.9774)<.015;}
     public static Day parse(String payload,LocalDate date)throws Exception {
         String h=new JSONObject(payload).getString("html");
@@ -37,7 +38,7 @@ public final class CalendarData {
     }
     public Day fetch(LocalDate date)throws Exception {
         if(Thread.currentThread().isInterrupted())throw new InterruptedException();
-        HttpURLConnection c=(HttpURLConnection)new java.net.URL(URL+"?country_id=1&date="+date).openConnection();c.setConnectTimeout(7000);c.setReadTimeout(7000);c.setRequestProperty("X-Requested-With","XMLHttpRequest");c.setRequestProperty("User-Agent","KLightTV/1.9.0");
+        HttpURLConnection c=(HttpURLConnection)new java.net.URL(URL+"?country_id=1&date="+date).openConnection();c.setConnectTimeout(7000);c.setReadTimeout(7000);c.setRequestProperty("X-Requested-With","XMLHttpRequest");c.setRequestProperty("User-Agent","KLightTV/1.10.0");
         try(InputStream in=c.getInputStream()){
             Day result=parse(read(in),date);if(Thread.currentThread().isInterrupted())throw new InterruptedException();JSONArray times=new JSONArray();for(int n:result.times)times.put(String.format(Locale.ROOT,"%02d:%02d",n/60,n%60));
             cache.edit().putString(date.toString(),new JSONObject().put("times",times).put("hijri",result.hijri).toString()).apply();return result;

@@ -22,6 +22,8 @@ import java.util.concurrent.Future;
 final class ScreenData {
     final kw.urtv.shared.CalendarData calendar;
     boolean official;
+    String prayerSource="محسوبة";
+    final int[] adjustments;
     String hijri="";
     static final ZoneId KUWAIT=ZoneId.of("Asia/Kuwait");
     final String city, panel;
@@ -43,6 +45,7 @@ final class ScreenData {
     ScreenData(Context context,Runnable changed) {
         calendar=new kw.urtv.shared.CalendarData(context);
         Prefs prefs=new Prefs(context);
+        adjustments=prefs.adjustments();
         String[] location=prefs.city();
         city=location[0];latitude=Double.parseDouble(location[1]);longitude=Double.parseDouble(location[2]);
         panel=prefs.panel();identity=city+":"+latitude+":"+longitude;
@@ -63,31 +66,26 @@ final class ScreenData {
         String today=LocalDate.now(KUWAIT).toString();
         if(today.equals(day))return;
         day=today;lastPrayer=0;official=false;hijri="";
-        prayers=PrayerTimes.calculate(LocalDate.parse(day),latitude,longitude);
-        try {
-            JSONArray saved=new JSONArray(cache.getString(identity+":"+day+":prayers",""));
-            int[] valid=new int[6];for(int i=0;i<6;i++){valid[i]=saved.getInt(i);if(valid[i]<0||valid[i]>=1440)throw new IllegalArgumentException();}
-            prayers=valid;lastPrayer=cache.getLong(identity+":"+day+":prayerAt",0);
-        } catch(Exception ignored) { }
-        kw.urtv.shared.CalendarData.Day verified=calendar.get(LocalDate.parse(day));
-        if(kw.urtv.shared.CalendarData.isKuwaitCity(latitude,longitude)&&verified!=null){prayers=verified.times;official=true;hijri=verified.hijri;lastPrayer=System.currentTimeMillis();}
+        applySchedule(LocalDate.parse(day));
     }
-    int[] tomorrow(){kw.urtv.shared.CalendarData.Day d=calendar.get(LocalDate.parse(day).plusDays(1));return kw.urtv.shared.CalendarData.isKuwaitCity(latitude,longitude)&&d!=null?d.times:PrayerTimes.calculate(LocalDate.parse(day).plusDays(1),latitude,longitude);}
-    boolean tomorrowOfficial(){return kw.urtv.shared.CalendarData.isKuwaitCity(latitude,longitude)&&calendar.get(LocalDate.parse(day).plusDays(1))!=null;}
+    private kw.urtv.shared.RegionSchedule.Result schedule(LocalDate d){return calendar.resolve(d,latitude,longitude,adjustments,PrayerTimes.calculate(d,latitude,longitude));}
+    private void applySchedule(LocalDate d){kw.urtv.shared.RegionSchedule.Result result=schedule(d);prayers=result.times;official=result.verified;prayerSource=result.source;kw.urtv.shared.CalendarData.Day base=calendar.get(d);hijri=base==null?"":base.hijri;if(official)lastPrayer=System.currentTimeMillis();}
+    int[] tomorrow(){return schedule(LocalDate.parse(day).plusDays(1)).times;}
+    boolean tomorrowOfficial(){return schedule(LocalDate.parse(day).plusDays(1)).verified;}
     boolean weatherStale(){return lastWeather>0&&System.currentTimeMillis()-lastWeather>3600000L;}
     private void fetchIfNeeded() {
         long now=System.currentTimeMillis();
         if(!active || now<nextAttempt || pending!=null&&!pending.isDone())return;
-        boolean needPrayer=(lastPrayer==0||now-lastPrayer>=6*3600000L);
+        boolean needPrayer=kw.urtv.shared.RegionCatalog.usesCityRecord(latitude,longitude)&&(lastPrayer==0||now-lastPrayer>=6*3600000L);
         boolean needWeather=weatherData==null||now-lastWeather>=1800000L||now<lastWeather;
         if(!needPrayer&&!needWeather)return;
         nextAttempt=now+300000; // failure backoff, not an every-minute network loop
         final int token=generation;final String wantedDay=day,wantedIdentity=identity;
         final String query="latitude="+latitude+"&longitude="+longitude+"&timezone=Asia%2FKuwait";
         pending=executor.submit(()-> {
-            if(needPrayer&&kw.urtv.shared.CalendarData.isKuwaitCity(latitude,longitude))try {
+            if(needPrayer&&kw.urtv.shared.RegionCatalog.usesCityRecord(latitude,longitude))try {
                 kw.urtv.shared.CalendarData.Day verified=calendar.fetch(LocalDate.parse(wantedDay));
-                main.post(()->{if(active&&token==generation&&wantedDay.equals(day)){prayers=verified.times;official=true;hijri=verified.hijri;lastPrayer=System.currentTimeMillis();changed.run();}});
+                main.post(()->{if(active&&token==generation&&wantedDay.equals(day)){applySchedule(LocalDate.parse(wantedDay));changed.run();}});
                 if(calendar.get(LocalDate.parse(wantedDay).plusDays(1))==null)calendar.fetch(LocalDate.parse(wantedDay).plusDays(1));
             } catch(Exception ignored) { }
             if(needWeather)try {

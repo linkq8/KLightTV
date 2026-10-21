@@ -5,6 +5,7 @@ import android.service.dreams.DreamService;
 /** The system screensaver: starts on the TV's own idle timer, any key wakes it. */
 public class ScreenDream extends DreamService {
     private ScreenView screen;
+    @Override public void onTrimMemory(int level){super.onTrimMemory(level);if(kw.urtv.shared.HardwarePolicy.shouldTrim(level)&&screen!=null)screen.memoryPressure();}
 
     @Override
     public void onAttachedToWindow() {

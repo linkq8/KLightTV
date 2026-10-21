@@ -256,3 +256,10 @@ Release 1.8 refinement: the five requested streaming brands use edge-to-edge nat
 ## KLightTV 1.9.0
 
 The product is now named KLightTV. Android package identifiers, preferences, and signature permission remain unchanged for upgrade compatibility. The composed sunset wallpaper retains its central tower corridor and now uses an AI-detail-enhanced export at3840×2160; native generation remained1672×941. Local bitmaps and minute-driven native rendering remain the implementation. No new runtime image network requests or resident services.
+
+
+## KLightTV1.10.0
+
+Shared regional prayer resolution distinguishes published offsets from geographic calculations. Khiran has no verified published offset and stays labelled calculated. Native reading settings use the existing deep-green/gold/Thmanyah system with a two-column draft preview and explicit save/cancel. Display and performance options are shared through the signature-protected provider; low-memory mode caps bitmap resolution, preserves native text and removes optional transitions. No new resident service or tracker.
+
+Prayer times and remaining duration use static split-clock tiles: fixed digit cells, zero-padded hours and minutes, a subtle center seam, and separate colons/AM-PM. Native Canvas keeps digit order stable in RTL and adds no animation loop. The large primary clock remains unboxed. Preview, home and saver share the tile renderer.

@@ -95,5 +95,7 @@
     <activity android:name=".ManageAppsActivity" android:exported="true" android:screenOrientation="landscape" />
 <activity android:name=".PersonalizeActivity" android:exported="true" android:screenOrientation="landscape" />
 <provider android:name=".PhotoProvider" android:authorities="kw.urtv.home.photos" android:exported="true" android:readPermission="kw.urtv.screensaver.READ_CONFIG" />
+<activity android:name="kw.urtv.shared.DisplaySettingsActivity" android:exported="false" android:screenOrientation="landscape" />
+<activity android:name="kw.urtv.shared.PerformanceActivity" android:exported="false" android:screenOrientation="landscape" />
 </application>
 </manifest>
