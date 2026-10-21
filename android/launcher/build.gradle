@@ -11,8 +11,8 @@ android {
         minSdk 26
         targetSdk 30   // Android 11 TVs only show the Wi-Fi name to apps targeting 30 with location granted
         // the same version as the screensaver (see android/app/build.gradle)
-        versionCode((System.getenv('ANDROID_VERSION_CODE') ?: '11') as int)
-        versionName "1.10.0"
+        versionCode((System.getenv('ANDROID_VERSION_CODE') ?: '12') as int)
+        versionName "1.10.1"
     }
 
     signingConfigs {

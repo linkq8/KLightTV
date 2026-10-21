@@ -2,7 +2,7 @@
 """KLightTV guided, reversible ADB setup. No OEM package is disabled or removed."""
 from __future__ import annotations
 import argparse,datetime,hashlib,ipaddress,json,os,pathlib,re,shlex,shutil,subprocess,sys,urllib.request
-REPO='linkq8/KLightTV';VERSION='1.10.0'
+REPO='linkq8/KLightTV';VERSION='1.10.1'
 FILES=('KLightTV-screensaver-android-tv.apk','KLightTV-home-android-tv.apk')
 DREAM_KEYS=('screensaver_enabled','screensaver_components','screensaver_default_component')
 

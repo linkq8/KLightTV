@@ -28,14 +28,14 @@ public class DisplaySettingsActivity extends TvPage {
         sample(preview,"نموذج للقراءة",14,0xFFBFCBBC);
         sample(preview,draft.time(20*60+30),Math.round(42*draft.textScale()),0xFFFFFDF6);
         sample(preview,"مواقيت الصلاة",16,0xFFDCB86F);
-        sample(preview,"العصر",16,0xFFF6EFE0);tile(preview,TimeTiles.clock(15*60+15,draft),draft.hour24?"":"م",draft.prayerScale());
-        sample(preview,"الصلاة القادمة",16,0xFFDCB86F);
+        sample(preview,"العصر",16,0xFFF6EFE0);tile(preview,TimeTiles.clock(15*60+15,draft),TimeTiles.period(15*60+15,draft),draft.prayerScale());
+        sample(preview,"الوقت المتبقي",16,0xFFDCB86F);
         tile(preview,TimeTiles.remaining(83,draft),"",draft.nextScale());
         sample(preview,"تُعرض الأوقات هنا كنموذج فقط.",12,0xFFBFCBBC);
         TextView save=button("حفظ ومعاينة",()->{draft.save(this);Intent i=new Intent().setClassName(getPackageName(),getPackageName()+".MainActivity");startActivity(i);finish();});preview.addView(save,new LinearLayout.LayoutParams(-1,-2));
         TextView cancel=button("رجوع دون حفظ",this::finish);LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);cp.topMargin=dp(8);preview.addView(cancel,cp);
         controls.getChildAt(focus).requestFocus();
     }
-    private void tile(LinearLayout parent,String digits,String suffix,float scale){TimeTiles.TileView v=new TimeTiles.TileView(this);v.update(digits,suffix,bold,0xFFFFFDF6,digits);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(dp(180),dp(Math.round(36*scale)));p.bottomMargin=dp(10);parent.addView(v,p);}
+    private void tile(LinearLayout parent,String digits,String suffix,float scale){TimeTiles.TileView v=new TimeTiles.TileView(this);v.update(digits,suffix,android.graphics.Typeface.create(bold,android.graphics.Typeface.BOLD),0xFFFFFDF6,digits);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(dp(180),dp(Math.round(36*scale)));p.bottomMargin=dp(10);parent.addView(v,p);}
     private void sample(LinearLayout parent,String label,int size,int color){TextView t=text(label,size,color);if(draft.heavy)t.setTypeface(bold,Typeface.BOLD);t.setPadding(0,0,0,dp(6));parent.addView(t,new LinearLayout.LayoutParams(-1,-2));}
 }
