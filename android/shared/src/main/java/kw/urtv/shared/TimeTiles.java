@@ -17,6 +17,9 @@ public final class TimeTiles {
     }
     public static String period(int minutes,DisplayOptions o){return o.hour24?"":minutes<720?"ص":"م";}
     public static void draw(Canvas c,String digits,String suffix,float x,float y,float height,Typeface font,int color){
+        draw(c,digits,suffix,x,y,height,font,color,.77f);
+    }
+    public static void draw(Canvas c,String digits,String suffix,float x,float y,float height,Typeface font,int color,float digitScale){
         Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);p.setTypeface(font);p.setTextAlign(Paint.Align.CENTER);
         float w=height*.60f,gap=height*.075f,cursor=x;
         for(char ch:digits.toCharArray()){
@@ -27,7 +30,7 @@ public final class TimeTiles {
             }
             p.setColor(0xDE152333);c.drawRoundRect(cursor,y,cursor+w,y+height,height*.07f,height*.07f,p);
             p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(Math.max(1,height*.012f));p.setColor(0x667F9CA8);c.drawRoundRect(cursor,y,cursor+w,y+height,height*.07f,height*.07f,p);p.setStyle(Paint.Style.FILL);
-            p.setColor(color);p.setTextSize(height*.77f);Paint.FontMetrics fm=p.getFontMetrics();
+            p.setColor(color);p.setTextSize(height*digitScale);Paint.FontMetrics fm=p.getFontMetrics();
             c.drawText(String.valueOf(ch),cursor+w/2,y+height/2-(fm.ascent+fm.descent)/2,p);
             p.setColor(0x33060D16);p.setStrokeWidth(Math.max(1,height*.009f));c.drawLine(cursor,y+height/2,cursor+w,y+height/2,p);
             cursor+=w+gap;
@@ -41,10 +44,12 @@ public final class TimeTiles {
     }
     public static final class TileView extends View {
         private boolean centered,reservePeriod;
+        private float digitScale=.77f;
         private String digits="--:--",suffix="";private Typeface font=Typeface.DEFAULT_BOLD;private int color=Color.WHITE;
         public TileView(Context c){super(c);setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);}
         public void update(String d,String s,Typeface f,int ink,String description){digits=d;suffix=s;font=f;color=ink;setContentDescription(description);invalidate();}
         public void alignCentered(){centered=true;reservePeriod=true;invalidate();}
-        @Override protected void onDraw(Canvas c){super.onDraw(c);float h=Math.min(getHeight()-2,getWidth()/((reservePeriod||!suffix.isEmpty())?3.61f:3.02f));float width=h*(suffix.isEmpty()?2.835f:3.51f);if(h>0)TimeTiles.draw(c,digits,suffix,centered?(getWidth()-width)/2:0,(getHeight()-h)/2,h,font,color);}
+        public void setDigitScale(float scale){digitScale=Math.max(.5f,Math.min(.9f,scale));invalidate();}
+        @Override protected void onDraw(Canvas c){super.onDraw(c);float h=Math.min(getHeight()-2,getWidth()/((reservePeriod||!suffix.isEmpty())?3.61f:3.02f));float width=h*(suffix.isEmpty()?2.835f:3.51f);if(h>0)TimeTiles.draw(c,digits,suffix,centered?(getWidth()-width)/2:0,(getHeight()-h)/2,h,font,color,digitScale);}
     }
 }

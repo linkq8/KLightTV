@@ -96,7 +96,7 @@ final class HomeCard {
             values[i].setGravity(Gravity.LEFT|Gravity.CENTER_VERTICAL);
             row.addView(labels[i],new FrameLayout.LayoutParams(-1,-1));
             row.addView(values[i],new FrameLayout.LayoutParams(-1,-1));
-            tiles[i]=new kw.urtv.shared.TimeTiles.TileView(activity);FrameLayout.LayoutParams tileParams=new FrameLayout.LayoutParams(dp(205),-1,Gravity.LEFT);tileParams.topMargin=dp(2);tileParams.bottomMargin=dp(2);row.addView(tiles[i],tileParams);
+            tiles[i]=new kw.urtv.shared.TimeTiles.TileView(activity);tiles[i].setDigitScale(.68f);FrameLayout.LayoutParams tileParams=new FrameLayout.LayoutParams(dp(205),-1,Gravity.LEFT);tileParams.topMargin=dp(2);tileParams.bottomMargin=dp(2);row.addView(tiles[i],tileParams);
             if(i<5) { View line=new View(activity); line.setBackgroundColor(0x21DCB86F);
                 row.addView(line,new FrameLayout.LayoutParams(-1,dp(1),Gravity.BOTTOM)); }
             table.addView(row,new LinearLayout.LayoutParams(-1,dp(32)));
