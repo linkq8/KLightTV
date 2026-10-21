@@ -2,7 +2,7 @@
 # Start the TV's screensaver now, the ways Android allows over ADB, and say whether it really runs.
 #   optimize/start-saver.sh             prints «dream» (it runs) or «not started»; exit 1 if not started
 #   optimize/start-saver.sh --preview   if Android won't start it (some Android 14 sets refuse ADB), show
-#                                       شاشة تلفزيونك's full-screen preview instead: the same page; prints «preview»
+#                                       شاشة KLightTV's full-screen preview instead: the same page; prints «preview»
 # Leave it with Home or Back.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -22,7 +22,7 @@ tv "cmd dreams start-dreaming" > /dev/null 2>&1 || true    # Android 14's own wa
 sleep "${SAVER_WAIT_S:-6}"
 if dreaming; then echo dream; exit 0; fi
 if [ "${1:-}" = --preview ]; then
-  tv "am start -n sa.urtv.screensaver/.MainActivity" > /dev/null
+  tv "am start -n kw.urtv.screensaver/.MainActivity" > /dev/null
   echo preview
   exit 0
 fi

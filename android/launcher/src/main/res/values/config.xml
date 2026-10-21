@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Launcher settings. Edit, push, and GitHub Actions rebuilds urtv-home.apk; then run optimize/install.sh.
+  Launcher settings. Edit, push, and GitHub Actions builds KLightTV-home-android-tv.apk; then run optimize/install.sh.
   Package names on your TV: optimize/venv/bin/python -I optimize/tv.py 'pm list packages'
 -->
 <resources>
@@ -8,13 +8,11 @@
          app to add it, remove it or move it, or from ADB with optimize/dock.sh; that choice is saved on the TV
          and replaces this list. -->
     <string-array name="dock_apps">
-        <item>com.google.android.youtube.tv</item>
-        <item>com.netflix.ninja</item>
-        <item>com.netflix.mediaclient</item>   <!-- Netflix on some TCL / Android TV builds -->
-        <item>net.mbc.shahidTV</item>
+        <item>com.todtv.tod</item>
         <item>com.amazon.amazonvideo.livingroom</item>
-        <item>com.disney.disneyplus</item>
-        <item>com.apple.atve.androidtv.appletv</item>
+        <item>com.shasha.tv</item>
+        <item>com.stremio.one</item>
+        <item>com.google.android.youtube.tv</item>
     </string-array>
 
     <!-- Never shown as tiles: system helpers, and the Live TV app (it's in the Inputs menu). -->

@@ -1,0 +1,27 @@
+[
+  {
+    "name": "tod",
+    "source": "https://play.google.com/store/apps/details?id=com.todtv.tod&hl=en",
+    "image": "https://play-lh.googleusercontent.com/EdBs3J5g9ViQvuhMrpVXYs9OhQRIU0LGXKvrbvNDzFiT7B5bHI1YQUupV0Le7WduQ3NPtX2fXGi6x2fBJmROO10=s0-br30"
+  },
+  {
+    "name": "prime",
+    "source": "https://play.google.com/store/apps/details?id=com.amazon.amazonvideo.livingroom&hl=en",
+    "image": "https://play-lh.googleusercontent.com/qyXqjzPggunbifX0ODhCehdy4ei0F90u0N3f4pPk8NhgCZD75dH8bdQYPROGRVlTVOs8B8JAT58X6ImMZv5ugHg=s0-br30"
+  },
+  {
+    "name": "stremio",
+    "source": "https://play.google.com/store/apps/details?id=com.stremio.one&hl=en",
+    "image": "https://play-lh.googleusercontent.com/OvTwEXzvUbeyfqdXd1vZiTfbBOTdMAA6EWw5TV00PiSirn7C1iz__HVD6PfXCHkN9quH_XdoPwCIT3GhB1Ukmw=s0-br30"
+  },
+  {
+    "name": "youtube",
+    "source": "https://play.google.com/store/apps/details?id=com.google.android.youtube.tv&hl=en",
+    "image": "https://play-lh.googleusercontent.com/OzCC2CEwKggMTTeFt_uAZ4Hp9W6b5_cGy29Pk36V-gAgh_w2ldR_2dVzo4B-7nClDUxo_mvkMG6LJ9o--ccvIw=s0-br30"
+  },
+  {
+    "name": "shasha",
+    "source": "https://play.google.com/store/apps/details?id=com.shasha.tv&hl=en",
+    "image": "https://play-lh.googleusercontent.com/GdcKles0w91fa6TrfXt8AabYtOD8XvENRU74_wtLveXKNc5QZo332KAmSzhrk34MO0GMEHebUXA7ExA7wJcUBzE=s0-br30"
+  }
+]

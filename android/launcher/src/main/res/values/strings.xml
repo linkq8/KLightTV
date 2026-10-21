@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">KLightTV</string>
+    <string name="remote_button_name">زر Netflix لتشغيل TOD</string>
+    <string name="remote_button_description">يشغّل TOD عند ضغط زر Netflix في ريموت Xiaomi، باستخدام إشارة تشغيل Netflix في سجل النظام عند الحاجة. لا يقرأ محتوى الشاشة ولا يحفظ السجل. يمكن إيقافه من إعدادات إمكانية الوصول.</string>
+</resources>

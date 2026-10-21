@@ -32,16 +32,9 @@ printf '%s\n' "settings delete secure screensaver_components" "settings delete s
   | tv --batch > /dev/null
 
 echo "3/4 Removing our apps (old and new names; missing ones are skipped)…"
-for p in sa.urtv.home sa.urtv.screensaver sa.yourtv.home sa.yourtv.screensaver com.abdullah.tvhome com.abdullah.tvsaver; do
+for p in kw.urtv.home kw.urtv.screensaver; do
   tv "pm uninstall $p" | grep -q Success && echo "   removed $p" || true
 done
-# TV Bro and SmartTube: only if the setup put them there (not in the TV's package list saved before it)
-for p in com.phlox.tvwebbrowser org.smarttube.stable; do
-  if [ -f optimize/run/backup.txt ] && ! grep -qx "package:$p" optimize/run/backup.txt; then
-    tv "pm uninstall $p" | grep -q Success && echo "   removed $p" || true
-  fi
-done
-
 echo "4/4 Tweaks back to Android's defaults…"
 optimize/tweaks.sh restore > /dev/null
 [ -d optimize/run ] && mv optimize/run "optimize/run-$(date +%Y%m%d-%H%M%S)"   # keep the old results apart

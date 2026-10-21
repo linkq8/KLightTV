@@ -4,7 +4,7 @@
 #   optimize/shot.sh screensaver [NAME]   the screensaver (started now, 40 s for its data), then Back; where
 #                                         Android won't start it over ADB, our app's preview of the same page
 #   optimize/shot.sh favourites [NAME]    «ترتيب المفضلة»
-#   optimize/shot.sh settings [NAME]      شاشة تلفزيونك's settings
+#   optimize/shot.sh settings [NAME]      شاشة KLightTV's settings
 #   optimize/shot.sh now NAME             whatever is on screen now
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -14,8 +14,8 @@ tv() { "$PY" -I optimize/tv.py "$@" > /dev/null; }
 case "${1:-}" in
   home)        tv "input keyevent KEYCODE_HOME"; sleep 8; name=home ;;
   screensaver) how=$(optimize/start-saver.sh --preview); echo "screensaver: $how"; sleep 34; name=screensaver ;;
-  favourites)  tv "am start -n sa.urtv.home/.DockActivity"; sleep 4; name=favourites ;;
-  settings)    tv "am start -n sa.urtv.screensaver/.SettingsActivity"; sleep 4; name=settings ;;
+  favourites)  tv "am start -n kw.urtv.home/.DockActivity"; sleep 4; name=favourites ;;
+  settings)    tv "am start -n kw.urtv.screensaver/.SettingsActivity"; sleep 4; name=settings ;;
   now)         name="${2:?usage: optimize/shot.sh now NAME}" ;;
   *) sed -n '2,8p' "$0"; exit 1 ;;
 esac

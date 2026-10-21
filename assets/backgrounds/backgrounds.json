@@ -1,27 +1,36 @@
 [
   {
-    "file": "9hWJs7iblh8.jpg",
-    "credit": "NEOM · Unsplash",
-    "brightness": 0.9
+    "file": "composed.jpg",
+    "credit": "KLightTV · AI-enhanced Kuwait composition",
+    "source": "User-provided reference, regenerated and detail-enhanced with built-in image_gen; exported to3840x2160 with sips",
+    "width": 3840,
+    "height": 2160,
+    "generated": true,
+    "brightness": 0.96,
+    "nativeWidth": 1672,
+    "nativeHeight": 941,
+    "enhanced": true,
+    "upscaled": true
   },
   {
-    "file": "XDtzu1D2P8c.jpg",
-    "credit": "NEOM · Unsplash",
-    "brightness": 0.84
-  },
-  {
-    "file": "t3dlLOhdEzs.jpg",
-    "credit": "NEOM · Unsplash",
-    "brightness": 0.99
-  },
-  {
-    "file": "LAj90eAXOZA.jpg",
-    "credit": "NEOM · Unsplash",
+    "file": "dusk.jpg",
+    "credit": "Frans van Heerden · Pexels",
+    "source": "https://www.pexels.com/photo/city-and-sea-during-day-3414922/",
+    "license": "https://www.pexels.com/license/",
     "brightness": 0.96
   },
   {
-    "file": "f5ZB0LHwi0s.jpg",
-    "credit": "Hala AlGhanim · Unsplash",
-    "brightness": 0.88
+    "file": "water.jpg",
+    "credit": "Shashi Ghosh · Unsplash",
+    "source": "https://unsplash.com/photos/litWRL7byks",
+    "license": "https://unsplash.com/license",
+    "brightness": 0.96
+  },
+  {
+    "file": "sunset.jpg",
+    "credit": "Quintin Gellar · Pexels",
+    "source": "https://www.pexels.com/photo/city-skyline-during-sunset-6720242/",
+    "license": "https://www.pexels.com/license/",
+    "brightness": 0.96
   }
 ]

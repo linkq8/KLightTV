@@ -1,89 +1,40 @@
-name: Build APKs
+name: Android APKs
 
 on:
   push:
-    branches: [master]
-    paths: ['src/**', 'assets/**', 'android/**', '.github/workflows/android.yml']
+    branches: [main, master]
+    paths: ['android/**', 'assets/**', '.github/workflows/android.yml']
+  pull_request:
+    paths: ['android/**', 'assets/**', '.github/workflows/android.yml']
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   apk:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Build the page
-        run: python3 src/build.py
-
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
+      - uses: android-actions/setup-android@v3
+      - name: Android SDK 34
+        run: sdkmanager 'platforms;android-34' 'build-tools;34.0.0'
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
-
-      # the signing key lives only in the repository's secrets (made once with .github/tools/make_signing_key.py)
-      - name: Signing key
-        env:
-          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          gradle-version: '8.11.1'
+      - name: Build development APKs
+        run: gradle -p android assembleDebug --no-daemon
+      - name: Name artifacts
         run: |
-          if [ -z "$KEYSTORE_B64" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
-            echo "::error::ANDROID_KEYSTORE_B64 and ANDROID_KEYSTORE_PASSWORD must both be in the repository's secrets"; exit 1
-          fi
-          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.p12"
-          echo "ANDROID_KEYSTORE=$RUNNER_TEMP/release.p12" >> "$GITHUB_ENV"
-
-      - name: Build APKs
-        env:
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-        run: gradle -p android assembleRelease --no-daemon
-
-      - name: Rename
-        run: |
-          cp android/app/build/outputs/apk/release/app-release.apk urtv-screensaver.apk
-          cp android/launcher/build/outputs/apk/release/launcher-release.apk urtv-home.apk
-
-      # apksigner, not keytool: the home APK has no v1 (JAR) signature, so keytool sees no signer in it
-      - name: Which key signed them
-        run: |
-          apksigner=$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
-          for f in urtv-screensaver.apk urtv-home.apk; do
-            echo "$f:"; "$apksigner" verify --print-certs "$f" | grep -m2 -E 'certificate (DN|SHA-256)'
-          done
-
+          cp android/app/build/outputs/apk/debug/app-debug.apk KLightTV-screensaver-development-android-tv.apk
+          cp android/launcher/build/outputs/apk/debug/launcher-debug.apk KLightTV-home-development-android-tv.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: apks
-          path: |
-            urtv-screensaver.apk
-            urtv-home.apk
-
-      # fixed download links: .../releases/download/apk-latest/urtv-screensaver.apk and urtv-home.apk
-      - name: Publish to the apk-latest release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: apk-latest
-          name: Latest APKs
-          body: "Both apps at version 3.${{ github.run_number }}, built from ${{ github.sha }}"
-          files: |
-            urtv-screensaver.apk
-            urtv-home.apk
-          make_latest: true
-
-      # and every build kept under its own number, the apps' version: APK_TAG=v3.N optimize/install.sh all
-      - name: Publish to the numbered release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v3.${{ github.run_number }}
-          name: UrTV 3.${{ github.run_number }}
-          body: "Both apps at version 3.${{ github.run_number }}, built from ${{ github.sha }}"
-          files: |
-            urtv-screensaver.apk
-            urtv-home.apk
-          make_latest: false
+          name: KLightTV-development-android-tv
+          path: KLightTV-*-development-android-tv.apk
+# Development artifacts have the runner's debug signature. Official sideload updates
+# are separately signed with the retained private release key and published immutably.

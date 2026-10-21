@@ -1,3 +1,5 @@
+> ملاحظات تاريخية من المشروع الأصلي عن أجهزة TCL. لم تُنفذ هذه التحسينات على تلفزيون المستخدم أثناء إعداد نسخة الكويت. أدوات إرسال التقارير حُذفت من هذه النسخة.
+
 # Optimizing a TCL Google TV / Android TV — what we learned
 
 From hands-on work on three TCL sets (Android 11, 12 and 14, 1.7–2.3 GB RAM, 32-bit). The tools are in `optimize/`.

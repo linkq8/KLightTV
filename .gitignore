@@ -15,3 +15,16 @@ optimize/lists/mine.txt
 *.p12
 *.jks
 *.keystore
+
+# Local credentials, device state and editor artifacts
+.env
+.env.*
+*.pem
+*.key
+*.p8
+*.mobileprovision
+.DS_Store
+.impeccable/
+*.log
+artifacts/
+.venv/

@@ -1,127 +1,64 @@
-<p align="center"><img src=".github/brand/hero.png" alt="تلفزيونك · UrTV" width="100%"></p>
+<p align="center"><img src=".github/brand/mark.svg" width="88" alt="KLightTV"></p>
+<h1 align="center">KLightTV</h1>
+<p align="center">واجهة عربية هادئة للكويت، على تلفزيونك.</p>
+<p align="center"><a href="https://github.com/linkq8/KLightTV/releases">تنزيل التطبيقات</a> · <a href="docs/INSTALL.md">دليل التثبيت</a> · <a href="docs/ARCHITECTURE.md">كيف يعمل</a> · <a href="docs/README.en.md">English</a></p>
 
-<h1 align="center">تلفزيونك · UrTV</h1>
+الساعة والصلاة والطقس وخلفيات الكويت، مع وصول مباشر إلى تطبيقات البث التي تستخدمها. واجهة رئيسية وشاشة توقف بعرض Android أصلي، وخلفيات محلية؛ دون فيديو خلفية أو أخبار أو رياضة أو أسواق أو توصيات إعلانية داخل الواجهة.
 
-<p align="center" dir="rtl">واجهة رئيسية عربية وشاشة توقف سعودية لتلفزيونات Android TV و Google TV، وتسريع آمن للتلفزيون.<br>يركّبها لك مساعد ذكاء اصطناعي بأمر واحد.</p>
+![الشاشة الرئيسية — لقطة فعلية من محاكي Android بدقة 3840×2160](docs/images/home-4k.png)
 
-<p align="center">An Arabic home screen and a Saudi screensaver for Android TV / Google TV, and a safe speed-up.<br>Your AI agent sets it all up.</p>
+## الرئيسية وشاشة التوقف
 
-<p align="center"><img src=".github/screens/before-after-home.jpg" alt="Before: Google TV home. After: the تلفزيونك home screen" width="100%"></p>
-<p align="center"><img src=".github/screens/before-after-screensaver.jpg" alt="Before: the Google screensaver. After: شاشة تلفزيونك" width="100%"></p>
+- ساعة وتاريخ ميلادي وهجري، مواقيت اليوم، الصلاة القادمة والعد التنازلي بخط واضح من بعيد.
+- حالة الطقس أسفل الساعة، مع توقعات الطقس وقراءة الغبار عند توفرها.
+- تكوين غروب الكويت محفوظ بين فراغات الواجهة، بملف **3840×2160** محسّن بالذكاء الاصطناعي ومرفوع الدقة. [التفاصيل وحقوق الصور](docs/PHOTO-CREDITS.md).
+- ثلاث صور فوتوغرافية أخرى للكويت، مع خيار تثبيت الخلفية أو تبديلها كل نصف ساعة.
+- بطاقات TOD وPrime Video وشاشا وStremio وYouTube تملأ الأزرار مع الحفاظ على نسب الشعارات. تظهر التطبيقات المثبتة فعليًا فقط، ويمكن ترتيب المفضلة وتغييرها.
+- قائمة تطبيقات على التلفزيون للإظهار والإخفاء وفتح تأكيد Android لإلغاء التثبيت، مع حفظ واستعادة تفضيلات الواجهة.
 
-<div dir="rtl">
+![شاشة التوقف — لقطة فعلية من المحاكي](docs/images/screensaver-4k.png)
 
-## ركّبه بمساعد الذكاء الاصطناعي
+بطاقات تطبيقات البث في هاتين اللقطتين تطبيقات معاينة على المحاكي، وليست نسخًا من خدمات البث. لا تُضمّن في الإصدار. ثبّت الخدمات من مصادرها الرسمية واستخدم حساباتك الخاصة.
 
-1. **على التلفزيون:** الإعدادات ← النظام ← حول ← اضغط OK على **Build** سبع مرات، ثم من **خيارات المطوّر** شغّل
-   **USB debugging**.
-2. **على كمبيوتر في نفس الواي فاي:** افتح مساعد يشغّل الأوامر على جهازك، مثل **Codex** أو **Claude Code**، والصق:
+## التثبيت السريع
 
-   > ركّب تلفزيوني من https://github.com/tshi-dev/UrTV: انسخ المستودع واتبع `docs/SETUP-PROMPT.md` خطوة بخطوة. أنت على كمبيوتر متصل بنفس شبكة الواي فاي حقت التلفزيون.
+يستهدف **Android TV وGoogle TV بنظام Android 8.0+**. لا يعمل على Tizen أو webOS. الاختبار الحالي على محاكي Android 14؛ اختيار Home وشاشة التوقف وصلاحيات ADB يختلف حسب الشركة والبرنامج الثابت، وقد تعرض بعض الأجهزة واجهة النظام بدقة 1080p رغم وجود لوحة 4K.
 
-   في Codex اختر «Approve for me» للموافقات من القائمة تحت خانة الكتابة.
+1. نزّل ملفّي APK من [إصدارات KLightTV](https://github.com/linkq8/KLightTV/releases).
+2. ثبّت شاشة التوقف أولًا ثم الرئيسية، يدويًا من مدير ملفات التلفزيون أو بواسطة ADB.
+3. افتح **KLightTV · شاشة التوقف**، ثم عيّنها من إعدادات شاشة التوقف في التلفزيون.
+4. عاين الرئيسية، ثم اختر KLightTV كتطبيق Home إن كان الجهاز يسمح بذلك.
 
-يسألك عن مدينتك والأندية اللي تتابعها، وبعدها يكمل لحاله في حوالي 40 دقيقة.
-
-**آمن:** ما يحذف أي تطبيق، وما يلمس AirPlay ولا Chromecast ولا الصوت، و`optimize/reset.sh` يرجّع التلفزيون مثل ما كان.
-
-</div>
-
-## Set it up with your AI agent
-
-1. **On the TV:** Settings → System → About → press OK on **Build** 7 times, then in **Developer options** turn on
-   **USB debugging**.
-2. **On a computer on the same Wi-Fi:** open an agent that runs commands on that computer, such as **Codex** or
-   **Claude Code**, and paste:
-
-   > Set up my TV with https://github.com/tshi-dev/UrTV: clone it and follow `docs/SETUP-PROMPT.md` step by step. You are on a computer on the same Wi-Fi as the TV.
-
-   In Codex, choose «Approve for me» for approvals in the menu under the chat box.
-
-It asks for your city and the clubs you follow, then does the rest on its own in about 40 minutes.
-
-**Safe:** nothing is uninstalled; AirPlay, Chromecast and voice are never touched; `optimize/reset.sh` puts the TV
-back as it came. The full prompt: [docs/SETUP-PROMPT.md](docs/SETUP-PROMPT.md).
-
-**Make your own:** to build a different screen or port it to another TV, give your agent this repo and
-[docs/RECREATE-PROMPT.md](docs/RECREATE-PROMPT.md) (the full design and behaviour spec).
-
-## What you get
-
-| | | |
-|---|---|---|
-| **شاشة تلفزيونك** · screensaver | Clock, Hijri date, prayer times and iqama, Ramadan, your teams' matches, weather, markets, and beside the clock your choice of new episodes, today's prayers, the 5-day forecast, all your teams' games, or a verse/hadith of the day, over Saudi landscapes | `urtv-screensaver.apk` |
-| **تلفزيونك** · home screen | Clean Arabic launcher: favourites row (5–10 apps) arranged in «ترتيب المفضلة», all apps, inputs, Wi-Fi, settings; optional card from the screensaver (off by default) | `urtv-home.apk` |
-| **Two free apps** | [TV Bro](https://github.com/truefedex/tv-bro), a web browser for the TV, and [SmartTube](https://github.com/yuliskov/SmartTube), YouTube without ads, from their own releases (skip with `SKIP_EXTRAS=1`) | `optimize/install.sh extras` |
-| **Speed-up** | Telemetry, ads and demos off (reversibly), closed apps frozen, Play Store kept from running in the background, faster animations | `optimize/` |
-
-**Download the apps yourself:** [releases/apk-latest](https://github.com/tshi-dev/UrTV/releases/tag/apk-latest)
-(install with `adb install`; the agent route above also sets everything up).
-Every build is also kept as a numbered release (`v3.N`, the apps' version), to go back to one:
-`APK_TAG=v3.N optimize/install.sh all`.
-
-## For agents and scripts
-
-Everything is scriptable over ADB, made for slow Wi-Fi (retries, resumable uploads, every step remembered):
-
-| | |
-|---|---|
-| `optimize/find-tv.sh` | `--check`: can this terminal reach the home network at all (not from a cloud or sandbox) · then finds the TV (Windows, Mac, Linux) |
-| `optimize/run.sh` | the whole setup; run again after any failure to continue · `status` |
-| `optimize/saver.sh` | screensaver settings: `city`, `teams`, `find-team`, `card`, `home-card`, `update`, `show` |
-| `optimize/dock.sh` | favourites row: `apps`, `set`, `show`, `reset` |
-| `optimize/measure.sh` · `shot.sh` | memory before/after (restart + settle) · screenshots without navigating |
-| `optimize/keep.sh` | turn back on anything protected (AirPlay, casting, voice, updates…) that something turned off |
-| `optimize/reset.sh` | back to stock: lists re-enabled, stock home and screensaver back, our apps removed |
-| `optimize/share.sh` | if the owner wants: how the setup went (TV model, time per step, what failed, memory before/after; nothing personal), sent anonymously to the author (from their phone by a QR code if this computer is offline) |
-
-What we learned on real TCL sets, and what must stay on: [docs/OPTIMIZE.md](docs/OPTIMIZE.md). Manual test plan:
-[docs/TEST-PLAN.md](docs/TEST-PLAN.md).
-
-## For developers
-
-```
-src/template.html     the screen (HTML/CSS/JS, no framework); edit this, then run src/build.py
-src/build.py          builds the two pages in dist/
-dist/urtv.html        stand-alone page, fonts and photos inlined: open in any browser (F = full screen), works offline
-dist/tv.html          light page the Android app loads (0.1 MB); the app serves fonts and photos from disk
-android/app           the screensaver app (sa.urtv.screensaver): DreamService, settings, auto-update
-android/launcher      the home screen (sa.urtv.home)
-assets/               fonts, bundled photos, Arabic team names, verse and hadith texts
-photos/               the hosted photo set (5 shown per 4 days, rotating every 30 min)
-optimize/             TV tools (Python ADB client, no adb binary needed); lists/ says what may be turned off
-docs/                 the agent prompts (setup, recreate), what we learned on real TVs, test plan, photo credits
-.github/              CI: APK builds, checks, data tools (verses, hadith, clubs, photos), README images
-tests/run.sh          every check: build, data, fonts, scripts, private data, flaky-ADB upload, the screen in a browser
+```sh
+adb connect TV_IP:PORT
+adb -s TV_IP:PORT install -r KLightTV-screensaver-android-tv.apk
+adb -s TV_IP:PORT install -r KLightTV-home-android-tv.apk
 ```
 
-Every push builds both APKs in GitHub Actions and publishes them to the `apk-latest` release; `tests/run.sh` runs
-on every push too. Local Android build (needs the SDK): `python3 src/build.py && gradle -p android assembleRelease`
-(signed with the debug key; the release key lives only in the repository's secrets).
+التفاصيل والاقتران وإلغاء التثبيت واستعادة Home في [دليل التثبيت المصوّر](docs/INSTALL.md). لا يلزم تعطيل واجهة الشركة لتجربة التطبيق. يحتفظ KLightTV بالحزمتين `kw.urtv.home` و`kw.urtv.screensaver` وتوقيع الإصدار السابق لتحديث النسخ المثبتة دون فقد تفضيلاتها.
 
-**Screen settings** come from the URL fragment (works on `file://` and in WebView):
+## الصلاة ورمضان
 
+مدينة الكويت هي الموقع الافتراضي. تستخدم بيانات رزنامة العجيري عند توفر سجل موثق لليوم؛ أما الحساب الاحتياطي فيظهر بوسم **«محسوبة»**. التاريخ الهجري الاحتياطي تقويمي، وبداية رمضان تخضع للإعلان المحلي. إمساكية رمضان لا تُنسب إلى العجيري دون بيانات المصدر. أرشيف 1447 متاح؛ توفر بيانات 1448 يحتاج التحقق والتحديث من المصدر. [مصدر المواقيت والإمساكية](docs/CALENDAR.md).
+
+## إدارة التطبيقات والخصوصية
+
+تعمل [أداة الكمبيوتر](tools/tv-manager/README.md) كقائمة اختيار للتطبيقات الموجودة على الجهاز: تفعيل، تعطيل، تقييد الخلفية أو استعادة آخر عملية. لا يحدث تغيير بمجرد الفحص؛ تراجع الخطة قبل تطبيقها. الخدمات الأساسية والميكروفون والريموت والشبكة محمية، والحزم غير المصنفة لا تُعطّل بالتخمين.
+
+KLightTV لا يضم SDK إعلانات أو تحليلات، ولا يرسل قائمة التطبيقات إلى خدمة خارجية. تعطيل خدمات الإعلانات المعروفة اختياري، ولا يضمن وقف كل اتصالات الشركة أو إعلانات تطبيقات البث. تقييد الخلفية ليس إيقافًا دائمًا. [رسم تدفق البيانات والحدود](docs/ARCHITECTURE.md).
+
+## البناء من المصدر
+
+تحتاج JDK 17 وGradle 8.11.1 وAndroid SDK 34. [خطوات البناء والاختبار والتوقيع](docs/BUILD.md):
+
+```sh
+gradle -p android assembleDebug
 ```
-urtv.html#city=جدة&lat=21.5433&lon=39.1728&tz=Asia/Riyadh&teams=136013,136137&panel=prayers
-```
 
-`teams`: up to 10 TheSportsDB ids in priority order. `panel`: the card beside the clock: `shows`, `prayers`,
-`forecast`, `matches`, `verse` or `none`. Also `genres`, `langs`, `shows`, `minrating` for the episodes card.
+بناء GitHub Actions ينتج **نسخ تطوير** موقّعة بمفتاح debug، ويختلف توقيعها عن ملفات الإصدار الرسمي. لا تحذف نسخة سابقة لتجاوز خطأ توقيع.
 
-**Data** (free, no keys): Aladhan (prayer times, Umm al-Qura), Open-Meteo (weather), Yahoo and CoinGecko (markets),
-TVMaze (episodes), TheSportsDB (matches). Everything fails soft: offline, the clock, dates, prayer and Ramadan
-countdowns still work and the last good data stays on screen. A finished game's score stays up for a day.
+## المشروع ومصادره
 
-**Verse and hadith texts are never typed by hand:** verses come from the Quran API via CI
-(`.github/tools/fetch_verses.py`); each hadith is checked by CI (`.github/tools/verify_hadith.py`) against the
-Arabic text of the six Sunni books, and only those found are shown, with the books as the source line.
+مشتق من [tshi-dev/UrTV](https://github.com/tshi-dev/UrTV) عند `1fec910`، مع تبسيط المحتوى للكويت وتطوير العرض الأصلي وإدارة التطبيقات. جزء الرئيسية مشتق من [mihirgupta0900/tv-home](https://github.com/mihirgupta0900/tv-home)، ويُحفظ [إشعار MIT الخاص به](android/launcher/LICENSE-tv-home). الخطوط Thmanyah كما وردت في المشروع الأصلي؛ الشعارات والعلامات مملوكة لأصحابها ولا تعني تأييدهم للمشروع. [سجل المصادر](docs/THIRD-PARTY.md).
 
-**The Android apps** update the screen page from this repo every 6 hours (so it must stay public), start fast
-(the page shows once the clock, saved panels and photo are ready), and come back after a power cut.
-
-## Credits
-
-Photos: Unsplash photographers, listed in [docs/PHOTO-CREDITS.md](docs/PHOTO-CREDITS.md). Fonts: Thmanyah, and
-Noto Naskh Arabic for ﷺ ﴿﴾ (OFL, `assets/fonts/`).
-Home screen adapted from [mihirgupta0900/tv-home](https://github.com/mihirgupta0900/tv-home) (MIT,
-`android/launcher/LICENSE-tv-home`). Package ratings from [UAD-ng](https://github.com/Universal-Debloater-Alliance/universal-android-debloater-next-generation).
+[تحديث 1.9.0](docs/RELEASE-1.9.md) · [دليل المجلدات](docs/ARCHITECTURE.md)

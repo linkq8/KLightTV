@@ -4,7 +4,6 @@
 #   optimize/run.sh            do the next steps
 #   optimize/run.sh status     what is done
 #   SKIP_LAUNCHER=1 optimize/run.sh   keep the TV's own home screen (firmware that won't let another app be Home)
-#   SKIP_EXTRAS=1 optimize/run.sh     without TV Bro and SmartTube
 # Before: optimize/setup.sh and optimize/find-tv.sh. Optional packages the household gave up go in
 # optimize/lists/mine.txt (one per line, picked from lists/tcl-optional.txt) before running.
 # Results in optimize/run/: summary.md (before/after), ram-*.txt, backup.txt, report.md, steps.log (times), run.log.
@@ -15,7 +14,7 @@ RUN=optimize/run
 mkdir -p "$RUN"
 tv() { "$PY" -I optimize/tv.py "$@"; }
 
-STEPS=(probe backup keep before before-saver safe mine tweaks screensaver launcher extras after after-saver report)
+STEPS=(probe backup keep before before-saver safe mine tweaks screensaver launcher after after-saver report)
 title() {
   case "$1" in
     probe)       echo "Connect and identify the TV" ;;
@@ -26,9 +25,8 @@ title() {
     safe)        echo "Disable telemetry, ads and demos (lists/tcl-safe.txt)" ;;
     mine)        echo "Disable the household's optional picks (lists/mine.txt)" ;;
     tweaks)      echo "Speed and memory tweaks" ;;
-    screensaver) echo "Install شاشة تلفزيونك" ;;
+    screensaver) echo "Install شاشة KLightTV" ;;
     launcher)    echo "Install the home screen (safety switch on)" ;;
-    extras)      echo "Install TV Bro (web browser) and SmartTube (YouTube without ads)" ;;
     after)       echo "Measure after (restart + 3 min)" ;;
     after-saver) echo "Measure our screensaver (1 min)" ;;
     report)      echo "Write the report" ;;
@@ -43,7 +41,7 @@ if [ "${1:-}" = status ]; then
   exit 0
 fi
 
-exec > >(tee -a "$RUN/run.log") 2>&1   # everything it says, for optimize/share.sh: its !! lines and dropped connections
+exec > >(tee -a "$RUN/run.log") 2>&1   # local setup log
 
 check_list() {   # never disable what UAD-ng rates Unsafe; show everything that is not "Recommended"
   local out
@@ -69,8 +67,7 @@ report() {
   echo
   echo "Home: $(tv "cmd package resolve-activity --brief -c android.intent.category.HOME -a android.intent.action.MAIN" | tail -1)"
   echo "Screensaver: $(tv "settings get secure screensaver_components")"
-  echo "Versions: screensaver $(tv "dumpsys package sa.urtv.screensaver | grep -m1 versionName" | sed 's/.*=//'), home $(tv "dumpsys package sa.urtv.home | grep -m1 versionName" | sed 's/.*=//')"
-  echo "Extras: TV Bro $([ -n "$(tv "pm list packages com.phlox.tvwebbrowser")" ] && echo yes || echo no), SmartTube $([ -n "$(tv "pm list packages org.smarttube.stable")" ] && echo yes || echo no)"
+  echo "Versions: screensaver $(tv "dumpsys package kw.urtv.screensaver | grep -m1 versionName" | sed 's/.*=//'), home $(tv "dumpsys package kw.urtv.home | grep -m1 versionName" | sed 's/.*=//')"
   local picks
   picks=$(grep -cvE '^\s*(#|$)' optimize/lists/mine.txt 2>/dev/null || true)
   echo "Optional picks (lists/mine.txt): ${picks:-0}"
@@ -96,14 +93,13 @@ do_step() {
     screensaver) optimize/install.sh saver ;;
     launcher)    if [ "${SKIP_LAUNCHER:-}" = 1 ]; then echo "   skipped (SKIP_LAUNCHER=1): the TV keeps its own home screen"
                  else optimize/install.sh launcher; fi ;;
-    extras)      if [ "${SKIP_EXTRAS:-}" = 1 ]; then echo "   skipped (SKIP_EXTRAS=1)"; else optimize/install.sh extras; fi ;;
     after)       optimize/measure.sh after ;;
     after-saver) optimize/measure.sh after-screensaver --screensaver ;;
     report)      report > "$RUN/report.md"; cat "$RUN/report.md" ;;
   esac
 }
 
-# when each step started, ended or stopped: optimize/share.sh turns it into how long each took
+# Local timing of setup steps
 stamp() { echo "$(date '+%Y-%m-%d %H:%M:%S') $*" >> "$RUN/steps.log"; }
 trap 'rc=$?; [ "$rc" -eq 0 ] || stamp "stopped ${current:-?} (exit $rc)"' EXIT
 for s in "${STEPS[@]}"; do

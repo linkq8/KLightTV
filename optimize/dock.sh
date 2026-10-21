@@ -4,12 +4,12 @@
 #   optimize/dock.sh apps                  every app that can go in it: package | name
 #   optimize/dock.sh set PKG1 PKG2 ...     a new order, left to right (up to 10; fewer than 5 is topped up)
 #   optimize/dock.sh reset                 back to the defaults in android/launcher/.../config.xml
-# The home screen redraws at once. Only ADB can do this (sa.urtv.home/.DockReceiver needs the shell's DUMP).
+# The home screen redraws at once. Only ADB can do this (kw.urtv.home/.DockReceiver needs the shell's DUMP).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PY="${PY:-optimize/venv/bin/python}"
 send() {   # $1 action, $2 extra arguments; prints the receiver's answer (the "data" of am broadcast)
-  "$PY" -I optimize/tv.py "am broadcast -n sa.urtv.home/.DockReceiver -a sa.urtv.home.$1 ${2:-}" \
+  "$PY" -I optimize/tv.py "am broadcast -n kw.urtv.home/.DockReceiver -a kw.urtv.home.$1 ${2:-}" \
     | sed -n '/data="/,$p' | sed '1s/.*data="//; $s/"$//'
 }
 case "${1:-}" in

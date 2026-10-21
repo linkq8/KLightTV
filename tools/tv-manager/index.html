@@ -1,0 +1,17 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>KLightTV · إدارة التلفزيون</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head><body>
+<!-- THESIS: An explicit reversible app checklist, not a one-click debloat score.
+OWN-WORLD: Existing Kuwait deep green, warm white, sand gold, Thmanyah type, quiet flat rows.
+STORY: Inspect actual packages, select intentional changes, review, apply and restore.
+FIRST VIEWPORT: Device context above a searchable list; a separate review column beside it.
+FORM: Precisely specified checklist extension of the established native television system; no seed needed.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md -->
+<header><a class="brand" href="/" aria-label="KLightTV · إدارة التلفزيون"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="5" width="28" height="20" rx="4"/><path d="M11 30h10M16 25v5"/></svg><span>KLightTV<span class="brand-sub">إدارة التلفزيون</span></span></a><span class="local">يعمل محليًا على الكمبيوتر</span></header>
+<main><div class="intro"><div><h1>تلفزيونك، على اختيارك.</h1><p>أبقِ ما تستخدمه. عطّل ما لا تحتاجه، واستعده متى أردت.</p></div><button id="refresh" class="secondary">إعادة الفحص</button></div>
+<div id="connection" role="status">جارٍ قراءة قائمة التطبيقات…</div><p id="error" role="alert" hidden></p>
+<div class="workspace"><section class="catalogue" aria-label="قائمة التطبيقات"><div class="toolbar"><label class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg><input id="search" type="search" placeholder="ابحث باسم التطبيق أو الحزمة" aria-label="البحث في التطبيقات"></label><span id="count"></span></div>
+<div class="tabs" role="group" aria-label="تصنيف التطبيقات"><button data-filter="all" aria-pressed="true">الكل</button><button data-filter="streaming">البث</button><button data-filter="optional">اختيارية</button><button data-filter="privacy">الخصوصية</button><button data-filter="protected">خدمات محمية</button></div>
+<div class="list-head"><span>التطبيق ووظيفته</span><span>الحالة</span><span>التغيير المطلوب</span></div><div id="apps"></div></section>
+<aside><h2>خطة التغييرات</h2><p class="muted">اختياراتك لا تُطبّق حتى تراجعها.</p><div id="plan-empty">اختر التطبيقات من القائمة.<br>تبقى التطبيقات الأخرى كما هي.</div><ul id="plan"></ul><button id="review" disabled>مراجعة الاختيارات</button><button id="privacy" class="secondary">اختيار خدمات الإعلانات المعروفة</button><button id="restore" class="text-button">استعادة آخر عملية</button><div class="protection"><h3>وظائف أساسية محمية</h3><p>الميكروفون والريموت والشبكة وخدمات تشغيل الفيديو. الحزم غير المصنفة تبقى محمية حتى فحصها.</p></div><p class="small">التعطيل يحتفظ بالبيانات. تقييد الخلفية ليس إيقافًا كاملًا. الإزالة هنا تخص تطبيقات النظام الاختيارية وللمستخدم الحالي، مع الاحتفاظ ببياناتها.</p></aside></div>
+<div id="results" role="status" hidden></div><footer>لا تُثبَّت خدمة مراقبة على التلفزيون · لا تُرسل قائمة التطبيقات إلى جهة خارجية</footer></main>
+<dialog id="confirm"><h2>مراجعة قبل التنفيذ</h2><p id="review-note"></p><ul id="review-list"></ul><div class="dialog-actions"><button id="apply">تطبيق التغييرات</button><button id="cancel" class="secondary">رجوع للقائمة</button></div></dialog>
+</body></html>

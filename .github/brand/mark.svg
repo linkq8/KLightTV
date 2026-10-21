@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- تلفزيونك mark: a TV with a desert sun and dune inside. Gold #D6AF6B on Riyadh-night green. -->
+  <!-- KLightTV inherited TV mark: warm gold on deep green. Adapted from the upstream project. -->
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0E2A1D"/><stop offset="1" stop-color="#04120C"/></linearGradient>
     <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F1CF8A"/><stop offset="1" stop-color="#C8A45C"/></linearGradient>
