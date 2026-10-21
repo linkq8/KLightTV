@@ -178,9 +178,9 @@ final class ScreenView extends View {
             float top=274+i*82f;
             String label=names[i],value=tableTimes==null?"—":options.time(tableTimes[i]);
             boolean next=!forecast&&tableTimes!=null&&(shown.isAfter(today)||minute<data.prayers[5])&&i==(shown.isAfter(today)?0:kw.urtv.shared.CalendarData.next(data.prayers,minute));
-            if(next){paint.setColor(0x383F8D65);canvas.drawRoundRect(new RectF(90,top-4,982,top+66),12,12,paint);}
+            if(next){RectF highlight=new RectF(88,top-8,984,top+72);paint.setColor(0x4DE7B94F);canvas.drawRoundRect(highlight,16,16,paint);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(1.5f);paint.setColor(0x80F0C75E);canvas.drawRoundRect(highlight,16,16,paint);paint.setStyle(Paint.Style.FILL);}
             if(next)highlighted=true;
-            int color=next?0xFFFFE2A0:SAND;
+            int color=next?0xFFFFFFFF:SAND;
             if(forecast) {
                 try {
                     JSONObject daily=data.weatherData.getJSONObject("daily");
@@ -190,7 +190,7 @@ final class ScreenView extends View {
                     text(canvas,ScreenData.weatherName(daily.getJSONArray("weather_code").getInt(i)),365,top+13,300,25,regular,0xFF9FB8A8,Layout.Alignment.ALIGN_CENTER);
                 }catch(Exception e){label=i==0?"جارٍ تحميل الطقس…":"";value="";}
             }
-            text(canvas,label,670,top+3,298,40*options.prayerScale(),options.heavy?bold:medium,color,Layout.Alignment.ALIGN_NORMAL);
+            text(canvas,label,650,top+3,298,40*options.prayerScale(),options.heavy?bold:medium,color,Layout.Alignment.ALIGN_NORMAL);
             if(forecast||tableTimes==null)text(canvas,value,104,top,260,36,medium,WHITE,Layout.Alignment.ALIGN_OPPOSITE);
             else kw.urtv.shared.TimeTiles.draw(canvas,kw.urtv.shared.TimeTiles.clock(tableTimes[i],options),kw.urtv.shared.TimeTiles.period(tableTimes[i],options),112,top-2,55*options.prayerScale(),bold,next?color:WHITE);
             if(i<(forecast?4:5))line(canvas,104,top+70,968,top+70,0x21DCB86F,1);
@@ -237,14 +237,14 @@ final class ScreenView extends View {
     }
     private String[] prayerNames(){return new String[]{"الفجر","الشروق",now.getDayOfWeek().getValue()==5?"الجمعة":"الظهر","العصر","المغرب","العشاء"};}
     private void drawNextPrayer(Canvas canvas) {
-        line(canvas,76,815,1854,815,0x4DDCB86F,1);
         if(data.prayers==null)return;
         int[] next=PrayerClock.next(data.prayers,data.tomorrow(),now.getHour()*60+now.getMinute());
         float h=80*options.nextScale();
-        text(canvas,"التالي · "+prayerNames()[next[0]],1180,853,650,34,bold,GOLD,Layout.Alignment.ALIGN_CENTER);
-        kw.urtv.shared.TimeTiles.draw(canvas,kw.urtv.shared.TimeTiles.clock(next[1],options),kw.urtv.shared.TimeTiles.period(next[1],options),1505-h*(options.hour24?3.02f:3.61f)/2,924,h,bold,SAND);
-        text(canvas,"الوقت المتبقي",110,853,650,34,bold,GOLD,Layout.Alignment.ALIGN_CENTER);
-        kw.urtv.shared.TimeTiles.draw(canvas,kw.urtv.shared.TimeTiles.remaining(next[2],options),"",435-h*3.02f/2,924,h,bold,SAND);
+        for(float left:new float[]{76,986}){RectF card=new RectF(left,838,left+868,1050);paint.setColor(0xA0111F2B);canvas.drawRoundRect(card,20,20,paint);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(1.5f);paint.setColor(0x30D9C17B);canvas.drawRoundRect(card,20,20,paint);paint.setStyle(Paint.Style.FILL);}
+        text(canvas,"التالي · "+prayerNames()[next[0]],1006,858,828,34,bold,GOLD,Layout.Alignment.ALIGN_CENTER);
+        kw.urtv.shared.TimeTiles.draw(canvas,kw.urtv.shared.TimeTiles.clock(next[1],options),kw.urtv.shared.TimeTiles.period(next[1],options),1420-h*(options.hour24?2.835f:3.51f)/2,930,h,bold,SAND);
+        text(canvas,"الوقت المتبقي",96,858,828,34,bold,GOLD,Layout.Alignment.ALIGN_CENTER);
+        kw.urtv.shared.TimeTiles.draw(canvas,kw.urtv.shared.TimeTiles.remaining(next[2],options),"",510-h*2.835f/2,930,h,bold,SAND);
     }
     private void line(Canvas canvas,float x,float y,float endX,float endY,int color,float width) {
         paint.setShader(null);paint.setColor(color);paint.setStrokeWidth(width);canvas.drawLine(x,y,endX,endY,paint);

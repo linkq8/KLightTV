@@ -160,7 +160,7 @@ public class MainActivity extends Activity {
         readingShade.setBackgroundColor(Color.argb(displayOptions.overlayAlpha(),0,0,0));
         clock.setTypeface(displayOptions.latin?font("medium"):font("display"));
         clock.setTextSize(58*displayOptions.textScale());date.setTextSize(14*displayOptions.textScale());greeting.setTextSize(15*displayOptions.textScale());
-        title.setVisibility(displayOptions.prayerScale()>1.05f?View.GONE:View.VISIBLE);
+        title.setVisibility(dockCards.isEmpty()?View.VISIBLE:View.GONE);
         IntentFilter tf = new IntentFilter(Intent.ACTION_TIME_TICK);
         tf.addAction(Intent.ACTION_TIME_CHANGED);
         tf.addAction(Intent.ACTION_TIMEZONE_CHANGED);
@@ -450,6 +450,7 @@ public class MainActivity extends Activity {
         appsLabel.setVisibility(rest.isEmpty() ? View.GONE : View.VISIBLE);
         wireFocus();
 
+        title.setVisibility(dock.isEmpty()?View.VISIBLE:View.GONE);
         if (!dock.isEmpty()) { title.setText(dock.get(0).label); setGlow(dock.get(0).color); }else{title.setText("اختر تطبيقاتك من «تطبيقاتي»");pills.get(0).requestFocus();}
         View last = lastFocusedId == View.NO_ID ? null : findViewById(lastFocusedId);
         if (last != null) last.requestFocus();
@@ -468,6 +469,7 @@ public class MainActivity extends Activity {
         card.setFocusable(true);
         card.setClickable(true);
         card.setTag(app);
+        card.setContentDescription(app.label);
         card.setClipToOutline(true);
         card.setOutlineProvider(new ViewOutlineProvider() {
             @Override public void getOutline(View v, Outline o) {
