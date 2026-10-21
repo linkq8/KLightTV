@@ -251,7 +251,7 @@ final class HomeCard {
             } else {
                 labels[i].setText(names[i]);values[i].setText(tableTimes==null?"—":time(tableTimes[i]));
                 if(tableTimes!=null)tiles[i].update(kw.urtv.shared.TimeTiles.clock(tableTimes[i],options),kw.urtv.shared.TimeTiles.period(tableTimes[i],options),bold,0xFFFFFDF6,names[i]+" "+time(tableTimes[i]));
-                boolean next=tableTimes!=null&&i==(shown.isAfter(today)?0:kw.urtv.shared.CalendarData.next(prayers,minute));
+                boolean next=tableTimes!=null&&(shown.isAfter(today)||minute<prayers[5])&&i==(shown.isAfter(today)?0:kw.urtv.shared.CalendarData.next(prayers,minute));
                 row.setBackgroundColor(next?0x382F7052:android.graphics.Color.TRANSPARENT);
                 if(next)highlighted=true;
                 labels[i].setTextColor(next?0xFFFFE2A0:SAND);values[i].setTextColor(next?0xFFFFE2A0:0xFFFFFDF6);

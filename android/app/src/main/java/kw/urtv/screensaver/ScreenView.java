@@ -177,7 +177,7 @@ final class ScreenView extends View {
         for(int i=0;i<(forecast?5:6);i++) {
             float top=274+i*82f;
             String label=names[i],value=tableTimes==null?"—":options.time(tableTimes[i]);
-            boolean next=!forecast&&tableTimes!=null&&i==(shown.isAfter(today)?0:kw.urtv.shared.CalendarData.next(data.prayers,minute));
+            boolean next=!forecast&&tableTimes!=null&&(shown.isAfter(today)||minute<data.prayers[5])&&i==(shown.isAfter(today)?0:kw.urtv.shared.CalendarData.next(data.prayers,minute));
             if(next){paint.setColor(0x383F8D65);canvas.drawRoundRect(new RectF(90,top-4,982,top+66),12,12,paint);}
             if(next)highlighted=true;
             int color=next?0xFFFFE2A0:SAND;
