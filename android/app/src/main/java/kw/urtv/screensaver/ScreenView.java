@@ -35,7 +35,6 @@ import java.util.concurrent.Executors;
 final class ScreenView extends View {
     private static final int SAND=0xFFF1F5FA,GOLD=0xFF8EDBEA,WHITE=0xFFF1F5FA;
     private static final Locale AR=new Locale("ar","KW");
-    private static final String[] BACKGROUNDS={"composed.jpg","water.jpg","dusk.jpg","sunset.jpg"};
     private static final int[][] SHIFTS={{0,0},{3,2},{0,4},{-3,2},{-3,-2},{0,-4},{3,-2}};
     private final kw.urtv.shared.WeatherSymbol weatherSymbol=new kw.urtv.shared.WeatherSymbol();
     private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
@@ -48,7 +47,7 @@ final class ScreenView extends View {
     private final kw.urtv.shared.FootballBoard football;
     private final kw.urtv.shared.Palette palette;private final kw.urtv.shared.DisplayOptions options;
     private int imageEdge;
-    private final kw.urtv.shared.FocusBackdrop focusBackdrop;
+    private final kw.urtv.shared.FocusBackdrop focusBackdrop,neutralBackdrop;
     private final kw.urtv.shared.SimplePrayerFace simpleFace;
     private final Shader veil=new LinearGradient(0,0,0,1080,
             new int[]{0xDB101D2D,0x87101D2D,0x50101D2D,0x45101D2D,0xE8101D2D},
@@ -57,7 +56,6 @@ final class ScreenView extends View {
             new int[]{0x00020704,0x8C020704,0xDB020604},new float[]{0,.42f,1},Shader.TileMode.CLAMP);
     private final Shader radial=ellipse(422,367,2304,918,new int[]{0x6B030E09,0x00030E09},new float[]{0,.58f});
     private final Shader topVeil=ellipse(0,0,1290,367,new int[]{0xD1020906,0x6B020906,0x00020906},new float[]{0,.45f,.76f});
-    private String pinnedPhoto="";
     private Bitmap background;
     private long photoSlot=Long.MIN_VALUE;
     private boolean destroyed,attached;
@@ -80,12 +78,11 @@ final class ScreenView extends View {
     static ScreenView create(Context context){return new ScreenView(context);}
     private ScreenView(Context context) {
         super(context);
-        simpleFace=new kw.urtv.shared.SimplePrayerFace(context);options=kw.urtv.shared.DisplayOptions.load(context);palette=new kw.urtv.shared.Palette(context,options);imageEdge=options.device(context).edge;focusBackdrop=new kw.urtv.shared.FocusBackdrop(options.focusColor);focusBackdrop.setBounds(0,0,1920,1080);
+        simpleFace=new kw.urtv.shared.SimplePrayerFace(context);options=kw.urtv.shared.DisplayOptions.load(context);palette=new kw.urtv.shared.Palette(context,options);imageEdge=options.device(context).edge;focusBackdrop=new kw.urtv.shared.FocusBackdrop(options.focusColor);focusBackdrop.setBounds(0,0,1920,1080);neutralBackdrop=new kw.urtv.shared.FocusBackdrop(palette.light?"white":"blue");neutralBackdrop.setBounds(0,0,1920,1080);
         medium=Typeface.createFromAsset(context.getAssets(),"fonts/Thmanyah-Medium.otf");
         regular=Typeface.createFromAsset(context.getAssets(),"fonts/Thmanyah-Regular.otf");
         display=Typeface.createFromAsset(context.getAssets(),"fonts/ThmanyahDisplay-Bold.otf");
         bold=Typeface.create(medium,Typeface.BOLD);
-        try(android.database.Cursor c=context.getContentResolver().query(android.net.Uri.parse("content://kw.urtv.home.photos"),null,null,null,null)){if(c!=null&&c.moveToFirst()&&c.getInt(0)==1){String f=c.getString(1);if(java.util.Arrays.asList(BACKGROUNDS).contains(f))pinnedPhoto=f;}}catch(Exception ignored){}
         football=new kw.urtv.shared.FootballBoard(context,this::invalidate);
         data=new ScreenData(context,()->{if(!destroyed){layouts.clear();updateDescription();invalidate();}});
         setFocusable(false);setBackgroundColor(0xFF040E09);
@@ -104,33 +101,23 @@ final class ScreenView extends View {
         Shader shader=new RadialGradient(0,0,1,colors,stops,Shader.TileMode.CLAMP);
         Matrix matrix=new Matrix();matrix.setScale(rx,ry);matrix.postTranslate(x,y);shader.setLocalMatrix(matrix);return shader;
     }
+    private String photoCity="";
     private void updatePhoto() {
         if(options.focused()||getWidth()==0||getHeight()==0||destroyed)return;
-        long slot=pinnedPhoto.isEmpty()?System.currentTimeMillis()/1800000L:0;
-        if(slot==photoSlot)return;
-        photoSlot=slot;
-        String name=pinnedPhoto.isEmpty()?BACKGROUNDS[(int)Math.floorMod(slot,BACKGROUNDS.length)]:pinnedPhoto;
-        float cap=Math.min(1f,imageEdge/(float)Math.max(getWidth(),getHeight()));
-        int width=Math.round(getWidth()*cap),height=Math.round(getHeight()*cap);
-        photos.execute(()-> {
-            Bitmap decoded=null;
-            try {
-                BitmapFactory.Options options=new BitmapFactory.Options();options.inJustDecodeBounds=true;
-                try(InputStream stream=getContext().getAssets().open("backgrounds/"+name)){BitmapFactory.decodeStream(stream,null,options);}
-                float target=Math.max(width/(float)options.outWidth,height/(float)options.outHeight);
-                int sample=1;while(sample*2<=1/target)sample*=2;
-                options.inJustDecodeBounds=false;options.inSampleSize=sample;options.inPreferredConfig=imageEdge<=1920?Bitmap.Config.RGB_565:Bitmap.Config.ARGB_8888;
-                try(InputStream stream=getContext().getAssets().open("backgrounds/"+name)){decoded=BitmapFactory.decodeStream(stream,null,options);}
-                if(decoded==null)return;
-                float factor=Math.max(width/(float)decoded.getWidth(),height/(float)decoded.getHeight());
-                Bitmap sized=Bitmap.createScaledBitmap(decoded,Math.round(decoded.getWidth()*factor),Math.round(decoded.getHeight()*factor),true);
-                if(sized!=decoded)decoded.recycle();decoded=null;
-                handler.post(()-> {
-                    if(destroyed||photoSlot!=slot){sized.recycle();return;}
-                    Bitmap old=background;background=sized;invalidate();if(old!=null)old.recycle();
-                });
-            }catch(OutOfMemoryError low){if(decoded!=null)decoded.recycle();if(imageEdge>1280)handler.post(this::memoryPressure);}
-            catch(Exception ignored){if(decoded!=null)decoded.recycle();}
+        final kw.urtv.shared.Place place=kw.urtv.shared.Place.load(getContext());
+        final String city=kw.urtv.shared.CityWallpaper.identity(place);
+        if(!city.equals(photoCity)){photoCity=city;photoSlot=Long.MIN_VALUE;if(background!=null){background.recycle();background=null;}invalidate();}
+        if(background!=null&&photoSlot!=Long.MIN_VALUE)return;
+        long slot=System.currentTimeMillis()/300000L;
+        if(slot==photoSlot)return;photoSlot=slot;
+        photos.execute(()->{
+            Bitmap bm=null;
+            try{bm=kw.urtv.shared.CityWallpaper.decode(getContext(),place,imageEdge);}catch(java.io.IOException ignored){}
+            catch(OutOfMemoryError low){if(imageEdge>1280)handler.post(this::memoryPressure);}
+            final Bitmap result=bm;
+            handler.post(()->{if(destroyed||photoSlot!=slot||!city.equals(kw.urtv.shared.CityWallpaper.identity(kw.urtv.shared.Place.load(getContext())))){if(result!=null)result.recycle();return;}
+                if(result!=null){Bitmap old=background;background=result;invalidate();if(old!=null)old.recycle();}
+            });
         });
     }
     @Override protected void onDraw(Canvas canvas) {
@@ -140,7 +127,7 @@ final class ScreenView extends View {
         canvas.save();canvas.translate((getWidth()-1920*scale)/2,(getHeight()-1080*scale)/2);canvas.scale(scale,scale);
         paint.setShader(null);
         canvas.drawColor(palette.light?0xFFF2F2F7:0xFF121316);
-        if(options.focused())focusBackdrop.draw(canvas);
+        if(options.focused())focusBackdrop.draw(canvas);else if(background==null)neutralBackdrop.draw(canvas);
         if(!options.focused()&&background!=null){
             paint.setColor(Color.WHITE);float factor=Math.max(1920f/background.getWidth(),1080f/background.getHeight());float w=background.getWidth()*factor,h=background.getHeight()*factor;
             canvas.drawBitmap(background,null,new RectF((1920-w)/2,(1080-h)/2,(1920+w)/2,(1080+h)/2),paint);
@@ -155,9 +142,9 @@ final class ScreenView extends View {
             canvas.save();canvas.translate(80,90);simpleFace.draw(canvas,1760,900,options,palette,now,data.city,data.prayers,data.tableTimes(shown),shown,data.tomorrow());canvas.restore();
         }else{
             // Readable from across the room: enlarged side groups use the full height.
-            canvas.save();canvas.translate(-24,-50);canvas.scale(1.06f,1.06f);
+            canvas.save();canvas.translate(-4,-50);canvas.scale(1.06f,1.06f);
             if(!"none".equals(data.panel))drawTable(canvas);canvas.restore();
-            canvas.save();canvas.translate(-90,-50);canvas.scale(1.06f,1.06f);
+            canvas.save();canvas.translate(-110,-50);canvas.scale(1.06f,1.06f);
             text(canvas,gregorian,rightX(),350,rightWidth(),28,regular,SAND,Layout.Alignment.ALIGN_CENTER);
             drawClock(canvas,rightX()+rightWidth()/2);drawWeather(canvas,rightX()+rightWidth()/2);drawNextPrayer(canvas);
             if(options.saverMatches&&options.showsMatches())football.draw(canvas,rightX(),806,rightWidth(),126);canvas.restore();

@@ -11,8 +11,8 @@ android {
         minSdk 26
         targetSdk 30   // Android 11 TVs only show the Wi-Fi name to apps targeting 30 with location granted
         // the same version as the screensaver (see android/app/build.gradle)
-        versionCode((System.getenv('ANDROID_VERSION_CODE') ?: '20') as int)
-        versionName "2.0.0"
+        versionCode((System.getenv('ANDROID_VERSION_CODE') ?: '21') as int)
+        versionName "2.0.1"
     }
 
     signingConfigs {
@@ -35,7 +35,7 @@ android {
         }
     }
 
-    // wallpapers are the screensaver's Kuwait photos, copied in at build time
+    // Calendar data only; selected-city photos are fetched on demand.
     sourceSets {
         main.java.srcDirs += ["../shared/src/main/java"]
         main { assets.srcDirs += ["$buildDir/generated/wallpapers"] }
@@ -52,7 +52,6 @@ android {
 }
 
 def copyWallpapers = tasks.register('copyWallpapers', Sync) {
-    from('../../assets/backgrounds') { include '*.jpg'; into 'wallpapers' }
     from('../../assets/calendar') { include '*.json'; into 'calendar' }
     into "$buildDir/generated/wallpapers"
 }

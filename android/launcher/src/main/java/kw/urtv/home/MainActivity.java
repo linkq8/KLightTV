@@ -91,7 +91,6 @@ public class MainActivity extends Activity {
     private View glow;
     private ImageView wallBack, wallFront;
     private View gridShade;
-    private String[] wallpapers = new String[0];
     private int wallIndex = -1;
     private long wallChangedAt;
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -159,7 +158,7 @@ public class MainActivity extends Activity {
         visible=true;
         displayOptions=kw.urtv.shared.DisplayOptions.load(this);kw.urtv.shared.DisplayOptions.Device device=displayOptions.device(this);lite=device.lite;imageEdge=device.edge;
         if(!displayOptions.theme.equals(builtTheme)||!(displayOptions.surface+displayOptions.focusColor).equals(builtSurface)){recreate();return;}
-        String identity=displayOptions.json()+":"+imageEdge;if(!identity.equals(displayIdentity)){displayIdentity=identity;wallIndex=-1;wallChangedAt=0;}
+        String identity=displayOptions.json()+":"+imageEdge+":"+kw.urtv.shared.CityWallpaper.identity(kw.urtv.shared.Place.load(this));if(!identity.equals(displayIdentity)){displayIdentity=identity;wallIndex=-1;wallChangedAt=0;wallFront.animate().cancel();wallBack.animate().cancel();wallFront.setImageDrawable(null);wallBack.setImageDrawable(null);}
         readingShade.setBackgroundColor(Color.argb(displayOptions.overlayAlpha(),0,0,0));
         clock.setTypeface(displayOptions.usesLatin()?font("medium"):font("display"));
         clock.setTextSize(58*displayOptions.textScale());date.setTextSize(14*displayOptions.textScale());greeting.setTextSize(15*displayOptions.textScale());
@@ -238,7 +237,7 @@ public class MainActivity extends Activity {
     private View buildUi() {
         builtTheme=displayOptions.theme;builtSurface=displayOptions.surface+displayOptions.focusColor;
         FrameLayout root = new FrameLayout(this);
-        if(displayOptions.focused())root.setBackground(new kw.urtv.shared.FocusBackdrop(displayOptions.focusColor));else root.setBackgroundColor(palette.bg);
+        if(displayOptions.focused())root.setBackground(new kw.urtv.shared.FocusBackdrop(displayOptions.focusColor));else root.setBackground(new kw.urtv.shared.FocusBackdrop(palette.light?"white":"blue"));
 
         // Wallpaper: two stacked layers so a new photo can crossfade in over the old one.
         wallBack = wallpaperLayer();
@@ -247,8 +246,7 @@ public class MainActivity extends Activity {
         root.addView(wallFront, new FrameLayout.LayoutParams(-1, -1));
         // Scrim: darker at the top (clock, pills) and bottom (dock) so text stays readable.
         View scrim = new View(this);
-        if(displayOptions.focused())scrim.setBackgroundColor(Color.TRANSPARENT);else scrim.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0x50121922,0x10121922,0x90121922}));
-        try{wallpapers=getAssets().list("wallpapers");Arrays.sort(wallpapers);}catch(java.io.IOException ignored){}
+        if(displayOptions.focused())scrim.setBackgroundColor(Color.TRANSPARENT);else scrim.setBackground(new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0x50121922,0x10121922,0x90121922}),new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,new int[]{0x66101D2D,0x10101D2D,0xB3101D2D})}));
         root.addView(scrim, new FrameLayout.LayoutParams(-1, -1));
         readingShade=new View(this);root.addView(readingShade,new FrameLayout.LayoutParams(-1,-1));
         gridShade = new View(this);
@@ -903,57 +901,26 @@ public class MainActivity extends Activity {
         return v;
     }
 
-    private Bitmap decodeWallpaper(String asset) throws java.io.IOException {
-        int width=getResources().getDisplayMetrics().widthPixels;
-        int height=getResources().getDisplayMetrics().heightPixels;
-        float cap=Math.min(1f,imageEdge/(float)Math.max(width,height));width=Math.round(width*cap);height=Math.round(height*cap);
-        final int targetWidth=width,targetHeight=height;
-        if(android.os.Build.VERSION.SDK_INT>=28) {
-            return ImageDecoder.decodeBitmap(ImageDecoder.createSource(getAssets(), asset), (decoder, info, source) -> {
-                float scale=Math.min(1f,Math.max((float)targetWidth/info.getSize().getWidth(),(float)targetHeight/info.getSize().getHeight()));
-                decoder.setTargetSize(Math.max(1,Math.round(info.getSize().getWidth()*scale)),Math.max(1,Math.round(info.getSize().getHeight()*scale)));
-                decoder.setAllocator(ImageDecoder.ALLOCATOR_SOFTWARE);
-                decoder.setMemorySizePolicy(ImageDecoder.MEMORY_POLICY_LOW_RAM);
-            });
-        }
-        BitmapFactory.Options o = new BitmapFactory.Options();
-        o.inPreferredConfig = Bitmap.Config.RGB_565;
-        o.inJustDecodeBounds=true;try(java.io.InputStream in=getAssets().open(asset)){BitmapFactory.decodeStream(in,null,o);}
-        int sample=1;while(o.outWidth/(sample*2)>=width&&o.outHeight/(sample*2)>=height)sample*=2;o.inSampleSize=sample;o.inJustDecodeBounds=false;
-        try(java.io.InputStream in=getAssets().open(asset)) {
-            Bitmap bitmap=BitmapFactory.decodeStream(in,null,o);
-            if(bitmap==null)return null;
-            float scale=Math.min(1f,Math.max((float)width/bitmap.getWidth(),(float)height/bitmap.getHeight()));
-            if(scale==1f)return bitmap;
-            Bitmap resized=Bitmap.createScaledBitmap(bitmap,Math.round(bitmap.getWidth()*scale),Math.round(bitmap.getHeight()*scale),true);
-            if(resized!=bitmap)bitmap.recycle();
-            return resized;
-        }
-    }
-
     /** Decode the next photo off the main thread, then crossfade it in over the current one. */
     private void nextWallpaper() {
         handler.removeCallbacks(rotateWallpaper);
-        if (displayOptions.focused() || !visible || wallpapers.length == 0) return;
-        final int total = wallpapers.length;
-        if (wallIndex < 0) wallIndex = prefs().getInt("wallpaper", -1);
-        wallIndex = prefs().getBoolean("wallpaper_pinned",false)?Math.floorMod(prefs().getInt("wallpaper",0),total):(wallIndex + 1) % total;
-        prefs().edit().putInt("wallpaper", wallIndex).apply();
-        wallChangedAt = SystemClock.elapsedRealtime();
-        final int idx = wallIndex;
-        final String fallback = "wallpapers/" + wallpapers[idx % wallpapers.length];
-        new Thread(() -> {
-            Bitmap bm = null;
-            {
-                try { bm = decodeWallpaper(fallback); }
-                catch (java.io.IOException ignored) { }
-                catch (OutOfMemoryError low){kw.urtv.shared.DisplayOptions.memoryPressure=true;lite=true;imageEdge=1280;try{bm=decodeWallpaper(fallback);}catch(java.io.IOException|OutOfMemoryError ignored){}}
-            }
-            Bitmap result = bm;
-            runOnUiThread(() -> showWallpaper(result));
-        }).start();
-        if(!prefs().getBoolean("wallpaper_pinned",false))scheduleWallpaper(WALLPAPER_INTERVAL_MS);
+        if(displayOptions.focused()||!visible)return;
+        wallChangedAt=SystemClock.elapsedRealtime();
+        final kw.urtv.shared.Place place=kw.urtv.shared.Place.load(this);
+        final String request=kw.urtv.shared.CityWallpaper.identity(place);
+        if(wallFront.getDrawable()!=null&&request.equals(photoShownCity))return;
+        final long generation=++photoGeneration;
+        new Thread(()->{
+            Bitmap bm=null;
+            try{bm=kw.urtv.shared.CityWallpaper.decode(this,place,imageEdge);}catch(java.io.IOException ignored){}
+            catch(OutOfMemoryError low){kw.urtv.shared.DisplayOptions.memoryPressure=true;lite=true;imageEdge=1280;}
+            final Bitmap result=bm;
+            runOnUiThread(()->{if(generation!=photoGeneration||!request.equals(kw.urtv.shared.CityWallpaper.identity(kw.urtv.shared.Place.load(this)))){if(result!=null)result.recycle();return;}if(result!=null)photoShownCity=request;showWallpaper(result);});
+        },"city-wallpaper").start();
+        scheduleWallpaper(300000);
     }
+    private long photoGeneration;
+    private String photoShownCity="";
 
     private void showWallpaper(Bitmap bm) {
         if (bm == null) return;

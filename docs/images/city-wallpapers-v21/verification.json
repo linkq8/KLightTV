@@ -1,0 +1,28 @@
+{
+  "version": "2.0.1 (21)",
+  "device": "emulator-5556 / API 34 / 1920x1080",
+  "checks": [
+    "Riyadh home and saver share identical single downloaded photo",
+    "Cached Riyadh remains available offline",
+    "Unsupported Buraydah clears old city cache; both screens use neutral fallback",
+    "Kuwait selected explicitly; previous city removed",
+    "Doha selected explicitly; only Doha cached",
+    "Simple mode does not download city photos",
+    "Dubai selected explicitly, downloaded curated photo and removed Doha cache; both screens captured",
+    "Final APKs: Dubai, Riyadh and Kuwait home/saver captured after readability and memory fixes",
+    "11 geographic/name matching cases pass, including rejection of Sharjah/Dubai and Lusail/Doha substitution"
+  ],
+  "physicalTVModified": false,
+  "curatedCities": [
+    "Kuwait City",
+    "Riyadh",
+    "Dubai",
+    "Doha"
+  ],
+  "unsupported": "Neutral background; no unrelated-city substitute",
+  "apkSHA256": {
+    "app": "25088eef25f5a3a7cd344263eee4e44443de4eb17859a39c92be496ec80bd532",
+    "launcher": "65e6136fb60e61e3f6fbaa6229ad33b568cd9788860d433919c944bea4b693a6"
+  },
+  "harnessNotes": "Host GPU emulator required restarts after QEMU/ADB hangs. Final Kuwait checks used headless SwiftShader. An overlapping update/start triggered an Android framework bind crash; a subsequent clean launch succeeded. Final images were visually inspected rather than relying on capture timers."
+}

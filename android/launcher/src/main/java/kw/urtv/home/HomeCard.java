@@ -83,7 +83,7 @@ final class HomeCard {
         options=kw.urtv.shared.DisplayOptions.load(activity);
         int column=options.focused()?(activity.getResources().getDisplayMetrics().widthPixels-dp(104))/2:dp(280);
         surface=new FrameLayout(activity);surface.setFocusable(false);surface.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);parent.addView(surface,params);
-        table=new LinearLayout(activity);table.setOrientation(android.widget.LinearLayout.VERTICAL);table.setPadding(dp(8),dp(options.focused()?6:10),dp(8),dp(options.focused()?6:10));
+        table=new LinearLayout(activity);table.setOrientation(android.widget.LinearLayout.VERTICAL);table.setPadding(dp(12),dp(options.focused()?6:12),dp(12),dp(options.focused()?6:12));
         GradientDrawable bg=new GradientDrawable();bg.setColor(0xED101D2D);bg.setCornerRadius(dp(12));table.setBackground(bg);
         FrameLayout.LayoutParams tp=new FrameLayout.LayoutParams(column,-2,Gravity.LEFT|Gravity.TOP);tp.topMargin=dp(8);surface.addView(table,tp);
         heading=text(14,GOLD);tableDate=text(12,0xFFB9CADA);
@@ -119,7 +119,7 @@ final class HomeCard {
         nextTimeTiles=new kw.urtv.shared.TimeTiles.TileView(activity);nextTiles=new kw.urtv.shared.TimeTiles.TileView(activity);nextTimeTiles.alignCentered();nextTiles.alignCentered();
         nextColumn.addView(nextTimeTiles,new LinearLayout.LayoutParams(-1,dp(42)));remainingColumn.addView(nextTiles,new LinearLayout.LayoutParams(-1,dp(42)));
         rightStack.addView(weather,new LinearLayout.LayoutParams(-1,-2));
-        LinearLayout.LayoutParams clockParams=new LinearLayout.LayoutParams(-1,-2);clockParams.topMargin=dp(10);rightStack.addView(clocks,clockParams);
+        LinearLayout.LayoutParams clockParams=new LinearLayout.LayoutParams(-1,-2);clockParams.topMargin=dp(12);rightStack.addView(clocks,clockParams);
         football=new kw.urtv.shared.FootballBoard.Surface(activity);
         LinearLayout.LayoutParams fp=new LinearLayout.LayoutParams(-1,dp(54));fp.topMargin=dp(12);rightStack.addView(football,fp);
         if(options.focused()){

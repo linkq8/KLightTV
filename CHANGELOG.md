@@ -1,3 +1,10 @@
+## 2.0.1 (21) — selected-city wallpapers
+
+- Share one on-demand selected-city photograph between home and screensaver; clear stale city imagery and use a neutral fallback for unsupported/offline first-use cities.
+- Curated Kuwait City, Riyadh, Dubai and Doha sources with in-app credits; remove full-resolution photo packs from both native APKs.
+- Bound downloads, validate dimensions, defer failed retries, and preserve hardware-aware bitmap decoding and simple-mode network silence.
+- Refine prayer panel padding and symmetric screensaver side margins; retain approved clocks, controls and remote mappings.
+
 # سجل التغييرات
 
 ## 2.0.0 — البناء 20 للتطوير، 24 أكتوبر 2026

@@ -1,0 +1,31 @@
+CAPTURE riyadh-home-final
+CAPTURE riyadh-saver-final
+PASS Riyadh home and saver share identical single downloaded photo
+CAPTURE riyadh-offline
+PASS Cached Riyadh remains available offline
+CAPTURE unsupported-home
+CAPTURE unsupported-saver
+PASS Unsupported Buraydah clears old city cache; both screens use neutral fallback
+total 1972
+-rw------- 1 u0_a197 u0_a197_cache 2014635 2026-10-24 22:26 kuwait-v1.jpg
+
+CAPTURE kuwait-home-final
+CAPTURE kuwait-saver-final
+PASS Kuwait selected explicitly; previous city removed
+total 14484
+-rw------- 1 u0_a197 u0_a197_cache 14826514 2026-10-24 22:27 doha-v1.jpg
+
+CAPTURE doha-home
+CAPTURE doha-saver
+PASS Doha selected explicitly; only Doha cached
+CAPTURE simple-home
+CAPTURE simple-saver
+PASS Simple mode does not download city photos
+ALL CITY UI CHECKS PASSED
+
+total 9724
+-rw------- 1 u0_a197 u0_a197_cache 9952054 2026-10-24 22:29 dubai-v1.jpg
+
+CAPTURE dubai-home
+CAPTURE dubai-saver
+DUBAI PASSED

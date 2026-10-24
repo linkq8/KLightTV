@@ -26,7 +26,7 @@ public class DisplaySettingsActivity extends TvPage {
         control("الأرقام · "+(draft.usesLatin()?"إنجليزية":"عربية"),()->draft.latin=!draft.latin,6);
         control("الساعة · "+(draft.hour24?"٢٤ ساعة":"١٢ ساعة"),()->draft.hour24=!draft.hour24,7);
         control("المظهر · "+(draft.theme.equals("light")?"فاتح":draft.theme.equals("auto")?"تلقائي":"داكن"),()->{draft.theme=draft.theme.equals("dark")?"light":draft.theme.equals("light")?"auto":"dark";},8);
-        control("تصميم الشاشة · "+(draft.focused()?"تركيز · بدون صور":"صور الكويت"),()->draft.surface=draft.focused()?"scenic":"focus",9);
+        control("تصميم الشاشة · "+(draft.focused()?"تركيز · بدون صور":"صور المدينة"),()->draft.surface=draft.focused()?"scenic":"focus",9);
         control("خلفية التركيز · "+draft.focusColorName(),()->draft.cycleFocusColor(),10);
         sample(preview,"نموذج للقراءة",14,0xFFB9CADA);
         sample(preview,draft.time(20*60+30),Math.round(42*draft.textScale()),0xFFFFFDF6);
