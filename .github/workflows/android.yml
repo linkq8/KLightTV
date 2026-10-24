@@ -31,7 +31,7 @@ jobs:
           gradle-version: '8.11.1'
       - name: Build development APKs
         run: gradle -p android assembleDebug --no-daemon
-      - name: Prayer location and calculation regression
+      - name: Prayer calculation and quick setup regression
         run: |
           curl --fail --silent --show-error --location https://repo.maven.apache.org/maven2/org/json/json/20240303/json-20240303.jar -o /tmp/klight-test-json.jar
           python3 tests/prayer_regression_test.py

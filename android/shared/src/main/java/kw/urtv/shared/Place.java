@@ -7,6 +7,8 @@ public final class Place {
  public Place(String c,String n,double a,double o,String z,String m,boolean h,boolean manual,boolean confirm){if(!ContentPolicy.country(c)||!ContentPolicy.text(n)||!ContentPolicy.text(z)||n==null||n.trim().isEmpty()||n.length()>160||!Double.isFinite(a)||!Double.isFinite(o)||Math.abs(a)>90||Math.abs(o)>180)throw new IllegalArgumentException("Invalid city");ZoneId.of(z);if(!java.util.Arrays.asList(METHODS).contains(m))throw new IllegalArgumentException("Invalid method");country=c;name=n;lat=a;lon=o;zone=z;method=m;hanafi=h;manualMethod=manual;needsConfirmation=confirm;}
  public static final String[] METHODS={"KUWAIT","UMM_AL_QURA","EGYPTIAN","MUSLIM_WORLD_LEAGUE","KARACHI","NORTH_AMERICA","DUBAI","QATAR","SINGAPORE"};
  public static final String[] LABELS={"الكويت","أم القرى","الهيئة المصرية للمساحة","رابطة العالم الإسلامي","كراتشي","أمريكا الشمالية","دبي","قطر","سنغافورة"};
+ public static final String[] EN_LABELS={"Kuwait","Umm al-Qura","Egyptian Survey Authority","Muslim World League","Karachi","North America","Dubai","Qatar","Singapore"};
+ public String label(boolean english){return english?EN_LABELS[java.util.Arrays.asList(METHODS).indexOf(method)]:label();}
  public String label(){return LABELS[java.util.Arrays.asList(METHODS).indexOf(method)];}
  public static String methodFor(String c){switch(c){case "KW":return "KUWAIT";case "SA":return "UMM_AL_QURA";case "EG":return "EGYPTIAN";case "AE":return "DUBAI";case "QA":return "QATAR";case "PK":case "BD":return "KARACHI";case "US":case "CA":return "NORTH_AMERICA";case "SG":return "SINGAPORE";default:return "MUSLIM_WORLD_LEAGUE";}}
  public static Place kuwait(){return region(0);}

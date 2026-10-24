@@ -124,6 +124,7 @@ public class MainActivity extends Activity {
         @Override public void onReceive(Context c, Intent i) { dockApps = loadDock(); buildApps(); }
     };
 
+    static boolean shouldOfferSetup(android.content.Context c){if(Dock.prefs(c).getBoolean("setup_complete",false)||Dock.prefs(c).getBoolean("quick_setup_seen",false))return false;try{android.content.pm.PackageInfo info=c.getPackageManager().getPackageInfo(c.getPackageName(),0);return info.lastUpdateTime-info.firstInstallTime<=1000;}catch(Exception ignored){return false;}}
     // ---------------------------------------------------------------- lifecycle
 
     @Override
@@ -149,7 +150,7 @@ public class MainActivity extends Activity {
         pf.addDataScheme("package");
         registerReceiver(packages, pf);
         registerReceiver(dockChanged, new IntentFilter(Dock.CHANGED));
-        if(!Dock.prefs(this).getBoolean("setup_complete",false))startActivity(new Intent(this,SetupActivity.class));
+        if(shouldOfferSetup(this))startActivity(new Intent(this,SetupActivity.class));
     }
 
     @Override
@@ -207,7 +208,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        if(!Dock.prefs(this).getBoolean("setup_complete",false)){startActivity(new Intent(this,SetupActivity.class));return;}
+        if(shouldOfferSetup(this)){startActivity(new Intent(this,SetupActivity.class));return;}
         // Home pressed while already home: jump back to the first dock app.
         if (inputsPopup != null) inputsPopup.dismiss();
         if (!dockCards.isEmpty()) dockCards.get(0).requestFocus();
@@ -809,7 +810,7 @@ public class MainActivity extends Activity {
     // ---------------------------------------------------------------- status
 
     private void updateClock() {
-        Calendar now = Calendar.getInstance(java.util.TimeZone.getTimeZone(kw.urtv.shared.Place.load(this).zone));
+        Calendar now = Calendar.getInstance(java.util.TimeZone.getTimeZone(displayOptions.clockZone(this).getId()));
         int h = now.get(Calendar.HOUR_OF_DAY);
         greeting.setText(h < 4 ? "تصبح على خير" : h < 12 ? "صباح الخير" : "مساء الخير");
         int hh = displayOptions.hour24 ? h : h % 12 == 0 ? 12 : h % 12;
@@ -819,15 +820,15 @@ public class MainActivity extends Activity {
         try {
             android.icu.text.SimpleDateFormat f = new android.icu.text.SimpleDateFormat(
                     "EEEE، d MMMM y", new android.icu.util.ULocale("ar_KW@calendar=islamic-umalqura"));
-            f.setTimeZone(android.icu.util.TimeZone.getTimeZone(kw.urtv.shared.Place.load(this).zone));
+            f.setTimeZone(android.icu.util.TimeZone.getTimeZone(displayOptions.clockZone(this).getId()));
             hijri = f.format(now.getTime()).replaceAll("\\s*هـ\\s*$", "") + " هـ";
         } catch (Exception ignored) { }
         SimpleDateFormat gregFormat = new SimpleDateFormat("d MMMM", new Locale("ar", "KW"));
-        gregFormat.setTimeZone(java.util.TimeZone.getTimeZone(kw.urtv.shared.Place.load(this).zone));
+        gregFormat.setTimeZone(java.util.TimeZone.getTimeZone(displayOptions.clockZone(this).getId()));
         String greg = gregFormat.format(now.getTime());
-        kw.urtv.shared.CalendarData.Day officialDate=kw.urtv.shared.Place.load(this).country.equals("KW")?calendarStore.get(java.time.LocalDate.now(kw.urtv.shared.Place.load(this).zoneId())):null;
+        kw.urtv.shared.CalendarData.Day officialDate=kw.urtv.shared.Place.load(this).country.equals("KW")?calendarStore.get(java.time.LocalDate.now(displayOptions.clockZone(this))):null;
         if(officialDate!=null)hijri=officialDate.hijri+" هـ";
-        date.setText(displayOptions.numbers(java.time.LocalDate.now(kw.urtv.shared.Place.load(this).zoneId()).format(java.time.format.DateTimeFormatter.ofPattern("EEEE، d MMMM yyyy",new Locale("ar")))));
+        date.setText(displayOptions.numbers(java.time.LocalDate.now(displayOptions.clockZone(this)).format(java.time.format.DateTimeFormatter.ofPattern("EEEE، d MMMM yyyy",new Locale("ar")))));
     }
 
     private String arabicDigits(String s) {

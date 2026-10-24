@@ -10,7 +10,7 @@ import kw.urtv.shared.TvPage;
 
 /** On-demand preferences only; no resident worker. Backup contains preferences, never accounts. */
 public class PersonalizeActivity extends TvPage {
-    @Override public void onCreate(Bundle b){super.onCreate(b);int initial=Math.max(0,Math.min(4,getIntent().getIntExtra("section",0)));render();navigation[initial].post(()->{section=initial;showSection();navigation[initial].requestFocus();});}
+    @Override public void onCreate(Bundle b){super.onCreate(b);if(b==null&&MainActivity.shouldOfferSetup(this)){startActivity(new Intent(this,SetupActivity.class));finish();return;}int initial=Math.max(0,Math.min(4,getIntent().getIntExtra("section",0)));render();navigation[initial].post(()->{section=initial;showSection();navigation[initial].requestFocus();});}
     private int section=0;
     private boolean renderingSection;
     private android.widget.LinearLayout detail;
@@ -43,10 +43,10 @@ public class PersonalizeActivity extends TvPage {
         String[] hints={kw.urtv.shared.Place.load(this).name,"الخلفية، القراءة، ومحتوى شاشة التوقف","إدارة التطبيقات، المفضلة، والفرق","التحديث والأداء وإعداد الجهاز","احفظ اختياراتك أو انقلها إلى جهاز آخر"};
         android.widget.TextView hint=text(hints[section],14,palette.muted);detail.addView(hint,new android.widget.LinearLayout.LayoutParams(-1,dp(40)));
         switch(section){
-        case 0:option("الموقع ومواقيت الصلاة",()->saverPage("SettingsActivity"));option("تنبيهات الصلاة",()->saverPage("ReminderActivity"));option("تقويم الصلاة",()->open(kw.urtv.shared.CalendarActivity.class));break;
+        case 0:option("إعداد سريع · Quick setup",()->open(SetupActivity.class));option("الموقع ومواقيت الصلاة",()->saverPage("SettingsActivity"));option("تنبيهات الصلاة",()->saverPage("ReminderActivity"));option("تقويم الصلاة",()->open(kw.urtv.shared.CalendarActivity.class));break;
         case 1:option("تصميم الشاشة · "+(kw.urtv.shared.DisplayOptions.load(this).focused()?"تركيز":"صور الكويت"),()->{kw.urtv.shared.DisplayOptions o=kw.urtv.shared.DisplayOptions.load(this);o.surface=o.focused()?"scenic":"focus";o.save(this);showSection();detail.getChildAt(2).requestFocus();});option("خلفية التركيز · "+kw.urtv.shared.DisplayOptions.load(this).focusColorName(),()->{kw.urtv.shared.DisplayOptions o=kw.urtv.shared.DisplayOptions.load(this);o.cycleFocusColor();o.save(this);showSection();detail.getChildAt(3).requestFocus();});option("شاشة التوقف · "+(kw.urtv.shared.DisplayOptions.load(this).saverMatches?"صلاة وطقس ومباريات":"صلاة وطقس فقط"),()->{kw.urtv.shared.DisplayOptions o=kw.urtv.shared.DisplayOptions.load(this);o.saverMatches=!o.saverMatches;o.save(this);showSection();detail.getChildAt(4).requestFocus();});option("المظهر وحجم الكتابة",()->open(kw.urtv.shared.DisplaySettingsActivity.class));break;
         case 2:option("إدارة التطبيقات · إزالة وتخصيص",()->open(ManageAppsActivity.class));option("ترتيب المفضلة",()->open(DockActivity.class));option("أزرار الريموت",()->open(RemoteSettingsActivity.class));option("الفرق والمباريات",()->open(FootballActivity.class));break;
-        case 3:option("وضع الأداء",()->open(kw.urtv.shared.PerformanceActivity.class));option("تحديث التطبيق",()->open(UpdateActivity.class));option("إعدادات نظام Android",()->startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS)));option("إعادة فتح الإعداد الأول",()->open(SetupActivity.class));break;
+        case 3:option("وضع الأداء",()->open(kw.urtv.shared.PerformanceActivity.class));option("تحديث التطبيق",()->open(UpdateActivity.class));option("إعدادات نظام Android",()->startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS)));break;
         default:option("حفظ التفضيلات",()->document(true));option("استعادة التفضيلات",()->document(false));break;
         }
         }finally{renderingSection=false;}

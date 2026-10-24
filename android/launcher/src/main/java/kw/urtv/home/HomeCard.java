@@ -42,7 +42,7 @@ final class HomeCard {
     private TextView nextPrayer,remainingLabel;
     private final kw.urtv.shared.TimeTiles.TileView[] tiles=new kw.urtv.shared.TimeTiles.TileView[6];
     private kw.urtv.shared.TimeTiles.TileView nextTiles,nextTimeTiles;
-    private kw.urtv.shared.Palette palette;private kw.urtv.shared.Place place;
+    private kw.urtv.shared.Palette palette;private kw.urtv.shared.Place place,weatherPlace;private String weatherIdentity="";private boolean prayersWereEnabled;
     private ZoneId zone = ZoneId.of("Asia/Kuwait");
     private static final int SAND=0xFFF1F5FA, GOLD=0xFF8EDBEA;
     private final Activity activity;
@@ -68,7 +68,7 @@ final class HomeCard {
     private final Runnable minute = new Runnable() {
         @Override public void run() {
             if (!active) return;
-            refreshDay(); render(); fetchIfNeeded(); football.refresh();
+            refreshDay(); render(); fetchIfNeeded(); if(options.showsMatches())football.refresh();else football.setVisibility(View.GONE);
             main.postDelayed(this, 60000 - System.currentTimeMillis()%60000 + 25);
         }
     };
@@ -141,7 +141,7 @@ final class HomeCard {
     void refresh() {
         if(destroyed) return;
         active=true;
-        options=kw.urtv.shared.DisplayOptions.load(activity);palette=new kw.urtv.shared.Palette(activity,options);place=kw.urtv.shared.Place.load(activity);zone=place.zoneId();
+        options=kw.urtv.shared.DisplayOptions.load(activity);palette=new kw.urtv.shared.Palette(activity,options);place=kw.urtv.shared.Place.load(activity);zone=options.clockZone(activity);weatherPlace=options.weatherLocation(activity);if(prayersWereEnabled!=options.prayersEnabled){day="";prayersWereEnabled=options.prayersEnabled;}
         applyReading();
         try(Cursor c=activity.getContentResolver().query(Uri.parse("content://kw.urtv.screensaver.config"),null,null,null,null)) {
             if(c!=null && c.moveToFirst()) {
@@ -155,13 +155,17 @@ final class HomeCard {
                 String raw=config.getQueryParameter("adjust");adjustments=new int[6];if(raw!=null)adjustments=kw.urtv.shared.PrayerCorrections.parse(raw);
             }
         } catch(Exception ignored) { }
+        if(options.focused())panel="prayers";
         String corrections=kw.urtv.shared.PrayerCorrections.key(place)+java.util.Arrays.toString(adjustments);if(!corrections.equals(correctionIdentity)){correctionIdentity=corrections;day="";lastPrayer=0;}
         String key=place.json();
         if(!key.equals(identity)) {
-            cancel(); identity=key; day=""; weatherData=null;lastPrayer=0;lastWeather=0;nextAttempt=0;
+            cancel(); identity=key; day="";lastPrayer=0;nextAttempt=0;
+        }
+        String weatherKey=weatherPlace.json();
+        if(!weatherKey.equals(weatherIdentity)){cancel();weatherIdentity=weatherKey;weatherData=null;lastWeather=0;nextAttempt=0;
             try {
-                weatherData=new JSONObject(cache.getString(identity+":weather",""));
-                lastWeather=cache.getLong(identity+":weatherAt",0);
+                weatherData=new JSONObject(cache.getString(weatherIdentity+":weather",""));
+                lastWeather=cache.getLong(weatherIdentity+":weatherAt",0);
             } catch(Exception ignored) { }
         }
         main.removeCallbacks(minute); minute.run();
@@ -182,16 +186,16 @@ final class HomeCard {
         applySchedule(LocalDate.parse(day));
     }
     private kw.urtv.shared.RegionSchedule.Result schedule(LocalDate d){return kw.urtv.shared.WorldPrayers.resolve(calendar,d,place,adjustments);}
-    private void applySchedule(LocalDate d){kw.urtv.shared.RegionSchedule.Result result=schedule(d);prayers=result.times;official=result.verified;prayerSource=result.source;if(official)lastPrayer=System.currentTimeMillis();}
+    private void applySchedule(LocalDate d){if(!options.prayersEnabled){prayers=null;official=false;return;}kw.urtv.shared.RegionSchedule.Result result=schedule(d);prayers=result.times;official=result.verified;prayerSource=result.source;if(official)lastPrayer=System.currentTimeMillis();}
     private void fetchIfNeeded() {
         long now=System.currentTimeMillis();
         if(!active || now<nextAttempt || pending!=null&&!pending.isDone())return;
-        boolean needPrayer=place.officialEligible()&&(lastPrayer==0||now-lastPrayer>=6*3600000L);
-        boolean needWeather=weatherData==null||now-lastWeather>=1800000L||now<lastWeather;
+        boolean needPrayer=options.prayersEnabled&&place.officialEligible()&&(lastPrayer==0||now-lastPrayer>=6*3600000L);
+        boolean needWeather=options.showsWeather()&&(weatherData==null||now-lastWeather>=1800000L||now<lastWeather);
         if(!needPrayer&&!needWeather)return;
         nextAttempt=now+300000; // failure backoff, not an every-minute network loop
-        final int token=generation;final String wantedDay=day,wantedIdentity=identity;
-        final String query="latitude="+latitude+"&longitude="+longitude+"&timezone="+android.net.Uri.encode(place.zone);
+        final int token=generation;final String wantedDay=day,wantedIdentity=weatherIdentity;
+        final String query="latitude="+weatherPlace.lat+"&longitude="+weatherPlace.lon+"&timezone="+android.net.Uri.encode(weatherPlace.zone);
         pending=executor.submit(()-> {
             if(needPrayer)try {
                 if(place.officialEligible()){
@@ -240,7 +244,7 @@ final class HomeCard {
         nextTimeTiles.setDigitScale(.68f*options.nextScale());nextTiles.setDigitScale(.68f*options.nextScale());
     }
     private void render() {
-        table.setVisibility("none".equals(panel)?View.GONE:View.VISIBLE);
+        table.setVisibility("none".equals(panel)||("forecast".equals(panel)?!options.showsWeather():!options.prayersEnabled)?View.GONE:View.VISIBLE);weather.setVisibility(options.showsWeather()?View.VISIBLE:View.GONE);clocks.setVisibility(options.prayersEnabled?View.VISIBLE:View.GONE);
         ZonedDateTime now=ZonedDateTime.now(zone);int minute=now.getHour()*60+now.getMinute();
         LocalDate today=now.toLocalDate(),shown=prayers==null?today:kw.urtv.shared.PrayerTableDay.select(today,minute,prayers[5]);
         int[] tableTimes=shown.equals(today)?prayers:schedule(shown).times;
@@ -278,7 +282,7 @@ final class HomeCard {
             nextTimeTiles.update(kw.urtv.shared.TimeTiles.clock(target,options),kw.urtv.shared.TimeTiles.period(target,options),bold,palette.ink,"موعد "+time(target));
             nextTiles.update(kw.urtv.shared.TimeTiles.remaining(left,options),"",bold,palette.ink,"متبقي "+left+" دقيقة");
         }
-        weatherDetails.setText(city);
+        weatherDetails.setText(weatherPlace.name);
         try {
             JSONObject current=weatherData.getJSONObject("current"),daily=weatherData.getJSONObject("daily");
             double dust=weatherData.optDouble("dust",0);
@@ -289,7 +293,7 @@ final class HomeCard {
             summary.setSpan(new ForegroundColorSpan(palette.ink),0,temperature.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             condition.setText(summary);
             condition.setTextColor(dust>=150?palette.accent:palette.ink);
-            weatherDetails.setText(city+"  ·  "+ar(Math.round(daily.getJSONArray("temperature_2m_max").getDouble(0))+"° / "+Math.round(daily.getJSONArray("temperature_2m_min").getDouble(0))+"°"));
+            weatherDetails.setText(weatherPlace.name+"  ·  "+ar(Math.round(daily.getJSONArray("temperature_2m_max").getDouble(0))+"° / "+Math.round(daily.getJSONArray("temperature_2m_min").getDouble(0))+"°"));
             if(lastWeather>0&&System.currentTimeMillis()-lastWeather>3600000L)weatherDetails.append("\n"+ar("آخر تحديث قبل "+((System.currentTimeMillis()-lastWeather)/3600000L)+" ساعة"));
         }catch(Exception e){weatherSymbol.setVisibility(View.GONE);condition.setText("الطقس غير متاح حالياً");}
         for(int i=0;i<6;i++)values[i].setText(options.numbers(values[i].getText().toString()));

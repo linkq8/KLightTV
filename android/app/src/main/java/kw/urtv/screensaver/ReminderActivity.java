@@ -4,6 +4,7 @@ public class ReminderActivity extends TvPage {
  @Override public void onCreate(Bundle b){super.onCreate(b);}
  @Override public void onResume(){super.onResume();PrayerAlerts.schedule(this);render();}
  void render(){int mode=PrayerAlerts.mode(this);title("تذكير الصلاة","نافذة صامتة أثناء المشاهدة · تختفي بعد ٧ ثوانٍ");
+ if(!kw.urtv.shared.DisplayOptions.local(this).prayersEnabled){note("مواقيت الصلاة متوقفة. فعّلها واختر مدينتك من الإعداد السريع أولًا.");addButton("رجوع",this::finish);return;}
  note("الحالة: "+(mode<0?"متوقف":mode>0?"عند الأذان وقبله بـ"+kw.urtv.shared.CalendarData.ar(""+mode)+" دقائق":"عند دخول الوقت"));
  addButton((mode==5?"✓  ":"")+"عند الأذان + قبل الصلاة بخمس دقائق",()->{PrayerAlerts.set(this,5);render();});
  addButton((mode==10?"✓  ":"")+"عند الأذان + قبل الصلاة بعشر دقائق",()->{PrayerAlerts.set(this,10);render();});

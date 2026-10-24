@@ -71,7 +71,7 @@ final class ScreenView extends View {
             hijri=PrayerClock.ar(today.format(DateTimeFormatter.ofPattern("EEEE، ",AR))
                     +HijrahDate.from(today).format(DateTimeFormatter.ofPattern("d MMMM yyyy",AR)))+" هـ";
             layouts.clear();
-            updatePhoto();data.tick();if(options.saverMatches)football.refresh();updateDescription();invalidate();
+            updatePhoto();data.tick();if(options.saverMatches&&options.showsMatches())football.refresh();updateDescription();invalidate();
             handler.postDelayed(this,60000-System.currentTimeMillis()%60000+30);
         }
     };
@@ -153,7 +153,7 @@ final class ScreenView extends View {
             text(canvas,gregorian,rightX(),350,rightWidth(),28,regular,SAND,Layout.Alignment.ALIGN_CENTER);
             drawClock(canvas,rightX()+rightWidth()/2);drawWeather(canvas,rightX()+rightWidth()/2);drawNextPrayer(canvas);
             if(!"none".equals(data.panel))drawTable(canvas);
-            if(options.saverMatches)football.draw(canvas,rightX(),806,rightWidth(),126);
+            if(options.saverMatches&&options.showsMatches())football.draw(canvas,rightX(),806,rightWidth(),126);
         }else{
             // Readable from across the room: enlarged side groups use the full height.
             canvas.save();canvas.translate(-24,-50);canvas.scale(1.06f,1.06f);
@@ -161,7 +161,7 @@ final class ScreenView extends View {
             canvas.save();canvas.translate(-90,-50);canvas.scale(1.06f,1.06f);
             text(canvas,gregorian,rightX(),350,rightWidth(),28,regular,SAND,Layout.Alignment.ALIGN_CENTER);
             drawClock(canvas,rightX()+rightWidth()/2);drawWeather(canvas,rightX()+rightWidth()/2);drawNextPrayer(canvas);
-            if(options.saverMatches)football.draw(canvas,rightX(),806,rightWidth(),126);canvas.restore();
+            if(options.saverMatches&&options.showsMatches())football.draw(canvas,rightX(),806,rightWidth(),126);canvas.restore();
         }
         canvas.restore();
         double hour=now.getHour()+now.getMinute()/60.0;
@@ -175,7 +175,7 @@ final class ScreenView extends View {
     private void glassTime(Canvas c,String digits,String period,float x,float y,float width,float height,float scale){
         glassDigits.draw(c,digits,period,x,y,width,height,options.heavy?bold:medium,palette.ink,.68f*scale,palette.light,options.contrast,true);
     }
-    private void drawTable(Canvas canvas){
+    private void drawTable(Canvas canvas){if("forecast".equals(data.panel)?!options.showsWeather():!options.prayersEnabled)return;
         paint.setColor(glassPanel());canvas.drawRoundRect(new RectF(80,174,options.focused()?940:780,options.focused()?940:918),24,24,paint);
         int minute=now.getHour()*60+now.getMinute();LocalDate today=now.toLocalDate(),shown=data.prayers==null?today:kw.urtv.shared.PrayerTableDay.select(today,minute,data.prayers[5]);
         int[] times=data.tableTimes(shown);boolean forecast="forecast".equals(data.panel);
@@ -198,7 +198,7 @@ final class ScreenView extends View {
         TextPaint clockMeasure=new TextPaint();clockMeasure.setTypeface(options.usesLatin()?bold:display);clockMeasure.setTextSize(options.focused()?116:142);float clockWidth=clockMeasure.measureText(clock.replaceFirst("^[0٠]", ""));
         text(canvas,kw.urtv.shared.TimeTiles.period(m,options),center+clockWidth/2+8,options.focused()?260:280,60,30,medium,GOLD,Layout.Alignment.ALIGN_CENTER);
     }
-    private void drawWeather(Canvas canvas,float center) {
+    private void drawWeather(Canvas canvas,float center) {if(!options.showsWeather())return;
         try {
             JSONObject current=data.weatherData.getJSONObject("current"),daily=data.weatherData.getJSONObject("daily");
             double dust=data.weatherData.optDouble("dust",0);
@@ -212,13 +212,13 @@ final class ScreenView extends View {
             text(canvas,description,left,424,descWidth,40,bold,GOLD,Layout.Alignment.ALIGN_CENTER);
             text(canvas,"\u2066"+temp+"\u2069",left+descWidth+24,424,tempWidth,40,options.heavy?bold:medium,WHITE,Layout.Alignment.ALIGN_CENTER);
             String range=PrayerClock.ar(Math.round(daily.getJSONArray("temperature_2m_max").getDouble(0))+"° / "+Math.round(daily.getJSONArray("temperature_2m_min").getDouble(0))+"°");
-            text(canvas,data.city+"  ·  "+range,center-420,486,840,26*options.textScale(),medium,0xFFB9CADA,Layout.Alignment.ALIGN_CENTER);
-        }catch(Exception e){text(canvas,"الطقس غير متاح حالياً",center-420,424,840,32,medium,0xFFE2D7C2,Layout.Alignment.ALIGN_CENTER);text(canvas,data.city,center-420,486,840,24,regular,0xFFE2D7C2,Layout.Alignment.ALIGN_CENTER);}
+            text(canvas,data.weatherCity+"  ·  "+range,center-420,486,840,26*options.textScale(),medium,0xFFB9CADA,Layout.Alignment.ALIGN_CENTER);
+        }catch(Exception e){text(canvas,"الطقس غير متاح حالياً",center-420,424,840,32,medium,0xFFE2D7C2,Layout.Alignment.ALIGN_CENTER);text(canvas,data.weatherCity,center-420,486,840,24,regular,0xFFE2D7C2,Layout.Alignment.ALIGN_CENTER);}
         if(data.weatherStale())text(canvas,"آخر قراءة محفوظة · تعذر تحديث الطقس",center-420,530,840,22,regular,0xFFE8B86A,Layout.Alignment.ALIGN_CENTER);
         line(canvas,center-205,560,center+205,560,palette.light?0x40334E60:0x40B9CADA,1);
     }
     private String[] prayerNames(){return new String[]{"الفجر","الشروق",now.getDayOfWeek().getValue()==5?"الجمعة":"الظهر","العصر","المغرب","العشاء"};}
-    private void drawNextPrayer(Canvas canvas){
+    private void drawNextPrayer(Canvas canvas){if(!options.prayersEnabled)return;
         paint.setColor(glassPanel());canvas.drawRoundRect(new RectF(rightX(),590,1840,766),24,24,paint);
         if(data.prayers==null||data.tomorrow()==null){text(canvas,data.prayerSource,1080,720,730,32,medium,GOLD,Layout.Alignment.ALIGN_NORMAL);return;}
         int[] next=PrayerClock.next(data.prayers,data.tomorrow(),now.getHour()*60+now.getMinute());
@@ -232,7 +232,7 @@ final class ScreenView extends View {
         paint.setShader(null);paint.setColor(color);paint.setStrokeWidth(width);canvas.drawLine(x,y,endX,endY,paint);
     }
     private void updateDescription(){
-        if(data==null||data.prayers==null||now==null)return;
+        if(data==null||now==null)return;if(data.prayers==null){setContentDescription(options.time(now.getHour()*60+now.getMinute())+(options.showsWeather()?" · "+data.weatherCity:""));return;}
         LocalDate today=now.toLocalDate(),shown=kw.urtv.shared.PrayerTableDay.select(today,now.getHour()*60+now.getMinute(),data.prayers[5]);
         StringBuilder b=new StringBuilder(options.time(now.getHour()*60+now.getMinute())).append(" · ").append(data.city);
         String[] names=prayerNames();names[2]=shown.getDayOfWeek().getValue()==5?"الجمعة":"الظهر";

@@ -2,7 +2,7 @@ package kw.urtv.screensaver;
 import android.app.*;import android.content.*;import android.os.*;import android.provider.Settings;import java.time.*;import kw.urtv.shared.CalendarData;
 final class PrayerAlerts {
  static final String FIRE="kw.urtv.screensaver.PRAYER_ALERT";
- static int mode(Context c){return c.getSharedPreferences("prayer_alerts",0).getInt("lead",-1);}
+ static int mode(Context c){if(!kw.urtv.shared.DisplayOptions.local(c).prayersEnabled)return -1;return c.getSharedPreferences("prayer_alerts",0).getInt("lead",-1);}
  static void set(Context c,int lead){c.getSharedPreferences("prayer_alerts",0).edit().putInt("lead",lead).apply();schedule(c);}
  static boolean precise(Context c){return Build.VERSION.SDK_INT<31||c.getSystemService(AlarmManager.class).canScheduleExactAlarms();}
  static PendingIntent pending(Context c,Intent i){return PendingIntent.getBroadcast(c,720,i,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);}

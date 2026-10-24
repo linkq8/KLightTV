@@ -12,7 +12,7 @@ android {
         targetSdk 34
         // CI passes its run number so every build installs over the previous one; 3.x since the new signing key,
         // the same number as the home app and as the release (v3.N)
-        versionCode((System.getenv('ANDROID_VERSION_CODE') ?: '18') as int)
+        versionCode((System.getenv('ANDROID_VERSION_CODE') ?: '19') as int)
         versionName "2.0.0"
     }
 

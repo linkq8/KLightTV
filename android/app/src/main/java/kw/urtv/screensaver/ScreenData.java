@@ -28,7 +28,8 @@ final class ScreenData {
     String hijri="";
     kw.urtv.shared.Place place;
     ZoneId zone=ZoneId.of("Asia/Kuwait");
-    final String city, panel;
+    final String city, weatherCity, panel;
+    final kw.urtv.shared.DisplayOptions options;final kw.urtv.shared.Place weatherPlace;
     final double latitude, longitude;
     final String identity;
     String day="";
@@ -46,11 +47,11 @@ final class ScreenData {
 
     ScreenData(Context context,Runnable changed) {
         contextForAlerts=context.getApplicationContext();calendar=new kw.urtv.shared.CalendarData(context);
-        Prefs prefs=new Prefs(context);place=prefs.place();zone=place.zoneId();
+        options=kw.urtv.shared.DisplayOptions.load(context);weatherPlace=options.weatherLocation(context);Prefs prefs=new Prefs(context);place=prefs.place();zone=options.clockZone(context);
         adjustments=prefs.adjustments();
         String[] location=prefs.city();
-        city=location[0];latitude=Double.parseDouble(location[1]);longitude=Double.parseDouble(location[2]);
-        panel=prefs.panel();identity=place.json();
+        city=location[0];weatherCity=weatherPlace.name;latitude=weatherPlace.lat;longitude=weatherPlace.lon;
+        panel=options.focused()?"prayers":prefs.panel();identity=weatherPlace.json();
         this.changed=changed;cache=context.getSharedPreferences("native_saver_data",Context.MODE_PRIVATE);
         try {
             weatherData=new JSONObject(cache.getString(identity+":weather",""));
@@ -71,20 +72,20 @@ final class ScreenData {
         applySchedule(LocalDate.parse(day));
     }
     private kw.urtv.shared.RegionSchedule.Result schedule(LocalDate d){return kw.urtv.shared.WorldPrayers.resolve(calendar,d,place,adjustments);}
-    private void applySchedule(LocalDate d){kw.urtv.shared.RegionSchedule.Result result=schedule(d);prayers=result.times;official=result.verified;prayerSource=result.source;kw.urtv.shared.CalendarData.Day base=place.country.equals("KW")?calendar.get(d):null;hijri=base==null?"":base.hijri;if(official)lastPrayer=System.currentTimeMillis();}
+    private void applySchedule(LocalDate d){if(!options.prayersEnabled){prayers=null;official=false;hijri="";return;}kw.urtv.shared.RegionSchedule.Result result=schedule(d);prayers=result.times;official=result.verified;prayerSource=result.source;kw.urtv.shared.CalendarData.Day base=place.country.equals("KW")?calendar.get(d):null;hijri=base==null?"":base.hijri;if(official)lastPrayer=System.currentTimeMillis();}
     int[] tableTimes(LocalDate shown){return prayers==null?null:shown.toString().equals(day)?prayers:schedule(shown).times;}
-    int[] tomorrow(){return schedule(LocalDate.parse(day).plusDays(1)).times;}
+    int[] tomorrow(){if(!options.prayersEnabled)return null;return schedule(LocalDate.parse(day).plusDays(1)).times;}
     boolean tomorrowOfficial(){return schedule(LocalDate.parse(day).plusDays(1)).verified;}
     boolean weatherStale(){return lastWeather>0&&System.currentTimeMillis()-lastWeather>3600000L;}
     private void fetchIfNeeded() {
         long now=System.currentTimeMillis();
         if(!active || now<nextAttempt || pending!=null&&!pending.isDone())return;
-        boolean needPrayer=place.officialEligible()&&(lastPrayer==0||now-lastPrayer>=6*3600000L);
-        boolean needWeather=weatherData==null||now-lastWeather>=1800000L||now<lastWeather;
+        boolean needPrayer=options.prayersEnabled&&place.officialEligible()&&(lastPrayer==0||now-lastPrayer>=6*3600000L);
+        boolean needWeather=options.showsWeather()&&(weatherData==null||now-lastWeather>=1800000L||now<lastWeather);
         if(!needPrayer&&!needWeather)return;
         nextAttempt=now+300000; // failure backoff, not an every-minute network loop
         final int token=generation;final String wantedDay=day,wantedIdentity=identity;
-        final String query="latitude="+latitude+"&longitude="+longitude+"&timezone="+android.net.Uri.encode(place.zone);
+        final String query="latitude="+latitude+"&longitude="+longitude+"&timezone="+android.net.Uri.encode(weatherPlace.zone);
         pending=executor.submit(()-> {
             if(needPrayer&&place.officialEligible())try {
                 kw.urtv.shared.CalendarData.Day verified=calendar.fetch(LocalDate.parse(wantedDay));
