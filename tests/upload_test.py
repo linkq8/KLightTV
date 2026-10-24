@@ -1,8 +1,4 @@
-"""optimize/tv.py's APK upload through a flaky fake ADB connection: it drops connections, loses replies after
-the command ran, and the upload is killed half way and started again. The file must arrive exactly.
-
-    python3 tests/upload_test.py          (no TV needed; 50 random runs)
-"""
+"""Legacy mutation guards and Git Bash path normalization, without a TV."""
 import base64, hashlib, os, random, re, sys, tempfile, types
 
 FS = {}
@@ -62,32 +58,19 @@ import tv
 tv.time.sleep = lambda s: None
 tv.signer = lambda: None
 
-import contextlib, io
-
-def one(seed):
-    random.seed(seed)
-    FS.clear()
-    data = os.urandom(700_000)
-    src = os.path.join(tempfile.mkdtemp(), "x.apk")
-    open(src, "wb").write(data)
-    t = tv.TV()
-    orig, calls = t.shell, {"n": 0}
-    def dying(cmd, timeout=120):   # the process is killed at its 6th call
-        calls["n"] += 1
-        if calls["n"] == 6:
-            raise KeyboardInterrupt
-        return orig(cmd, timeout)
-    t.shell = dying
-    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-        try:
-            tv.push_b64(t, src, "/data/local/tmp/x.apk")
-        except KeyboardInterrupt:
-            pass
-        tv.push_b64(tv.TV(), src, "/data/local/tmp/x.apk")   # run again: resumes or restarts
-    return FS.get("/data/local/tmp/x.apk") == data
-
-bad = [seed for seed in range(50) if not one(seed)]
-print(f"upload: {50 - len(bad)}/50 intact despite {stats['drop']} dropped connections and {stats['lost']} lost replies")
+# The legacy transport is now intentionally read-only. Upload tests must verify
+# rejection, rather than bypass the safety gate to exercise obsolete writes.
+with tempfile.TemporaryDirectory() as folder:
+    src=os.path.join(folder,"x.apk")
+    with open(src,"wb") as f:f.write(b"fake apk")
+    for action in [lambda:tv.TV().shell("rm -f /data/local/tmp/x.apk"),
+                   lambda:tv.TV().call("push",src,"/data/local/tmp/x.apk"),
+                   lambda:tv.push_b64(tv.TV(),src,"/data/local/tmp/x.apk")]:
+        try:action();raise AssertionError("legacy mutation permitted")
+        except ValueError:pass
+assert not FS,"blocked upload touched fake device"
+bad=[]
+print("PASS legacy shell, push and chunked upload blocked before device writes")
 
 # Git Bash on Windows rewrites /data/local/tmp/x into its own folder before Python sees it: tv.py cuts it back off
 tv.is_git_folder = lambda f: f in ("C:/Program Files/Git", "D:/data/Git")

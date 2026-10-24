@@ -28,7 +28,7 @@ import java.util.Map;
  * screensaver's settings, or `am start -n kw.urtv.home/.DockActivity`.
  */
 public class DockActivity extends Activity {
-    private static final int GOLD = 0xFFD6AF6B, INK = 0xFF04120C, TEXT = 0xFFF6EFE0, DIM = 0xFFC6BBA4;
+    private int GOLD,INK,TEXT,DIM;private kw.urtv.shared.Palette palette;
 
     private Map<String, String> apps;
     private final List<String> row = new ArrayList<>();
@@ -40,13 +40,13 @@ public class DockActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle b) {
-        super.onCreate(b);
+        setTheme(new kw.urtv.shared.Palette(this,kw.urtv.shared.DisplayOptions.load(this)).light?android.R.style.Theme_Material_Light_NoActionBar:android.R.style.Theme_Material_NoActionBar);super.onCreate(b);palette=new kw.urtv.shared.Palette(this,kw.urtv.shared.DisplayOptions.load(this));GOLD=palette.accent;INK=palette.light?0xFFFFFFFF:palette.bg;TEXT=palette.ink;DIM=palette.muted;
         apps = Dock.launchable(this);
         row.addAll(Dock.shown(this, apps));
 
         ScrollView scroll = new ScrollView(this);
         scroll.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-            new int[]{0xFF0A2016, 0xFF04120C, 0xFF020806}));
+            new int[]{palette.bg,palette.bg,palette.bg}));
         scroll.setVerticalScrollBarEnabled(false);
         FrameLayout frame = new FrameLayout(this);
         scroll.addView(frame);

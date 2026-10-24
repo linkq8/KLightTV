@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+echo "Legacy device changes are blocked. Use tools/device_safety.py, then reviewed tools/install.py or tools/tv-manager/server.py. No device was changed." >&2
+exit 2
 # The whole setup in one command, made for slow or flaky ADB: every finished step is remembered, so after
 # any failure just run it again and it carries on where it stopped.
 #   optimize/run.sh            do the next steps

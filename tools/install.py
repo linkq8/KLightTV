@@ -2,6 +2,8 @@
 """KLightTV guided, reversible ADB setup. No OEM package is disabled or removed."""
 from __future__ import annotations
 import argparse,datetime,hashlib,ipaddress,json,os,pathlib,re,shlex,shutil,subprocess,sys,urllib.request
+sys.path.insert(0,str(pathlib.Path(__file__).resolve().parent))
+import device_safety as safety
 REPO='linkq8/KLightTV';VERSION='1.10.3'
 FILES=('KLightTV-screensaver-android-tv.apk','KLightTV-home-android-tv.apk')
 DREAM_KEYS=('screensaver_enabled','screensaver_components','screensaver_default_component')
@@ -66,19 +68,33 @@ def save_snapshot(state,root=None):
  stamp=datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S%fZ');key=hashlib.sha256(state['android_id'].encode()).hexdigest()[:10]
  path=root/f'{stamp}-{key}.json';path.write_text(json.dumps(state,ensure_ascii=False,indent=2));path.chmod(0o600);return path
 
-def restore(adb,state):
+def restore(adb,state,audit=None,review=None):
  if state.get('home') and not re.fullmatch(r'[\w.]+/[\w.$]+',state['home']):raise ValueError('Invalid Home component')
  for key,value in state['dream'].items():
   if key not in DREAM_KEYS or (value!='null' and not re.fullmatch(r'[\w.,/$]+',value)):raise ValueError('Invalid screensaver value')
  if adb.shell('getprop','ro.build.fingerprint')!=state['fingerprint'] or adb.shell('settings','get','secure','android_id')!=state['android_id']:raise RuntimeError('Snapshot belongs to a different device or system')
+ policy_record=safety.gate(adb.shell,adb.serial,audit,review,[dict(kind='restore-install',snapshot_sha256=safety.digest(state))],recovery=True)
+ print('Mandatory verification record: '+str(policy_record))
  if state['home']:adb.shell('cmd','package','set-home-activity','--user','0',state['home'])
  for key,value in state['dream'].items():
   if key not in DREAM_KEYS:raise ValueError('Invalid settings key')
   adb.shell('settings','delete','secure',key) if value=='null' else adb.shell('settings','put','secure',key,value)
 
-def install(adb,files,state,home=False,dream=False):
+def install_plan(files,home=False,dream=False):
+ if len(files)!=2:raise ValueError('Expected the paired installers')
+ ops=[dict(kind='install',package=pkg,sha256=hashlib.sha256(path.read_bytes()).hexdigest()) for path,pkg in zip(files,('kw.urtv.screensaver','kw.urtv.home'))]
+ if home:ops.append(dict(kind='set-home'))
+ if dream:ops.append(dict(kind='set-screensaver'))
+ return ops
+
+def install(adb,files,state,home=False,dream=False,audit=None,review=None):
  for path in files:
   if path.is_symlink() or not path.is_file() or not path.stat().st_size:raise ValueError('Missing or invalid APK: '+str(path))
+ if state.get("fingerprint")!=adb.shell("getprop","ro.build.fingerprint") or state.get("android_id")!=adb.shell("settings","get","secure","android_id"):raise ValueError("Installation snapshot does not match the connected device")
+ if home and not state.get("home"):raise ValueError("Original Home must be known before any install")
+ operations=install_plan(files,home,dream)
+ policy_record=safety.gate(adb.shell,adb.serial,audit,review,operations)
+ print('Mandatory verification record: '+str(policy_record))
  for path in files:
   output=adb.call('install','-r',str(path.resolve()),timeout=180)
   if not re.search(r'^Success\s*$',output,re.M):raise RuntimeError('Install did not succeed: '+output)
@@ -100,10 +116,16 @@ def install(adb,files,state,home=False,dream=False):
   else:
    adb.shell('cmd','package','set-home-activity','--user','0',state['home'])
    raise RuntimeError('Firmware kept another Home; original Home restored. APKs are installed.')
+ safety.finish(policy_record,[dict(ok=True,operation=op) for op in operations])
  adb.shell('am','start','-n','kw.urtv.screensaver/.SettingsActivity')
 
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('--serial');p.add_argument('--connect',type=address);p.add_argument('--pair',type=address);p.add_argument('--adb');p.add_argument('--apk-dir',type=pathlib.Path);p.add_argument('--version',default=VERSION);p.add_argument('--set-home',action='store_true');p.add_argument('--set-screensaver',action='store_true');p.add_argument('--yes',action='store_true');p.add_argument('--inspect',action='store_true');p.add_argument('--restore',type=pathlib.Path);a=p.parse_args()
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--audit',type=pathlib.Path);p.add_argument('--review',type=pathlib.Path);p.add_argument('--write-install-plan',type=pathlib.Path);p.add_argument('--profile-plan',type=pathlib.Path,help='Validate a portable profile and print its read-only plan; never installs');p.add_argument('--serial');p.add_argument('--connect',type=address);p.add_argument('--pair',type=address);p.add_argument('--adb');p.add_argument('--apk-dir',type=pathlib.Path);p.add_argument('--version',default=VERSION);p.add_argument('--set-home',action='store_true');p.add_argument('--set-screensaver',action='store_true');p.add_argument('--yes',action='store_true');p.add_argument('--inspect',action='store_true');p.add_argument('--restore',type=pathlib.Path);a=p.parse_args()
+ if a.profile_plan:
+  import importlib.util
+  spec=importlib.util.spec_from_file_location('setup_profile',pathlib.Path(__file__).parent/'setup/profile.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+  if a.profile_plan.stat().st_size>32768:raise ValueError('Profile exceeds 32 KiB')
+  print(json.dumps(module.plan(json.loads(a.profile_plan.read_text())),ensure_ascii=False,indent=2));return
  candidates=[a.adb,os.environ.get('ADB'),shutil.which('adb'),str(pathlib.Path.home()/'Library/Android/sdk/platform-tools/adb'),str(pathlib.Path.home()/'AppData/Local/Android/Sdk/platform-tools/adb.exe')]
  binary=next((x for x in candidates if x and pathlib.Path(x).is_file()),None)
  if not binary:raise RuntimeError('Install Android SDK Platform-Tools and add adb to PATH')
@@ -121,12 +143,15 @@ def main():
  print('Display mode: automatically selected on TV using RAM and app heap limits.')
  if a.inspect:return
  if a.restore:
-  restore(adb,json.loads(a.restore.read_text()));print('Home/screensaver settings restored; apps and their data preserved.');return
+  restore(adb,json.loads(a.restore.read_text()),a.audit,a.review);print('Home/screensaver settings restored; apps and their data preserved.');return
+ if not a.write_install_plan and (not a.audit or not a.review):raise ValueError('Device changes require --audit and --review. Use tools/device_safety.py inspect first; --yes does not bypass this policy.')
  directory=a.apk_dir or pathlib.Path.home()/'.klighttv'/'downloads'/a.version
  files=[directory/name for name in FILES] if a.apk_dir else download_installers(directory,a.version)
+ if a.write_install_plan:
+  safety.write(a.write_install_plan,install_plan(files,a.set_home,a.set_screensaver));print('Plan only; device unchanged.');return
  if not a.yes and input('Install both APKs and requested Home/screensaver settings? [y/N] ').lower()!='y':return
  snapshot=save_snapshot(state);print('Restore snapshot: '+str(snapshot))
- try:install(adb,files,state,a.set_home,a.set_screensaver)
+ try:install(adb,files,state,a.set_home,a.set_screensaver,a.audit,a.review)
  except Exception:
   print('Setup incomplete. Keep the snapshot; restore with --serial DEVICE --restore FILE.');raise
  print('KLightTV installed. Select the region and reading preferences on the TV.')

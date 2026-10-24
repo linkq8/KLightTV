@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+echo "Legacy device changes are blocked. Use tools/device_safety.py, then reviewed tools/install.py or tools/tv-manager/server.py. No device was changed." >&2
+exit 2
 # Speed and memory tweaks that are safe and reversible. Nothing is uninstalled or disabled here.
 #   optimize/tweaks.sh apply     - animations at half length
 #                                - Play Store kept from running in the background (it stays installed and opens

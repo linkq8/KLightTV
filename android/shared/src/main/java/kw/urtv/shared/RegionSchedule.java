@@ -13,7 +13,7 @@ public final class RegionSchedule {
         if(result.length!=6||corrections.length!=6)throw new IllegalArgumentException("Six times required");
         boolean changed=false;
         for(int i=0;i<6;i++){
-            if(corrections[i]<-6||corrections[i]>6)throw new IllegalArgumentException("Correction out of range");
+            if(corrections[i]<-PrayerLimits.CORRECTION_MINUTES||corrections[i]>PrayerLimits.CORRECTION_MINUTES)throw new IllegalArgumentException("Correction out of range");
             result[i]+=(verified?r.offset:0)+corrections[i];changed|=corrections[i]!=0;
             if(result[i]<0||result[i]>=1440||(i>0&&result[i]<=result[i-1]))throw new IllegalArgumentException("Invalid schedule");
         }

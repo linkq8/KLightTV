@@ -106,7 +106,7 @@ public class MainActivity extends Activity {
     private PopupWindow inputsPopup;
     private HomeCard homeCard;
     private kw.urtv.shared.CalendarData calendarStore;
-    private kw.urtv.shared.DisplayOptions displayOptions;
+    private kw.urtv.shared.Palette palette;private String builtTheme,builtSurface;private boolean tickRegistered;private kw.urtv.shared.DisplayOptions displayOptions;
     private View readingShade;
     private boolean lite;
     private boolean visible;
@@ -128,8 +128,8 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle b) {
-        super.onCreate(b);
-        displayOptions=kw.urtv.shared.DisplayOptions.load(this);
+        setTheme(new kw.urtv.shared.Palette(this,kw.urtv.shared.DisplayOptions.load(this)).light?android.R.style.Theme_Material_Light_NoActionBar:android.R.style.Theme_Material_NoActionBar);super.onCreate(b);
+        displayOptions=kw.urtv.shared.DisplayOptions.load(this);palette=new kw.urtv.shared.Palette(this,displayOptions);
         kw.urtv.shared.DisplayOptions.Device device=displayOptions.device(this);lite=device.lite;imageEdge=device.edge;
         calendarStore=new kw.urtv.shared.CalendarData(this);
         dockApps = loadDock();
@@ -138,7 +138,7 @@ public class MainActivity extends Activity {
         cols = getResources().getInteger(R.integer.columns);
         getWindow().getDecorView().setSystemUiVisibility(
                 View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
         setContentView(buildUi());
         buildApps();
 
@@ -149,6 +149,7 @@ public class MainActivity extends Activity {
         pf.addDataScheme("package");
         registerReceiver(packages, pf);
         registerReceiver(dockChanged, new IntentFilter(Dock.CHANGED));
+        if(!Dock.prefs(this).getBoolean("setup_complete",false))startActivity(new Intent(this,SetupActivity.class));
     }
 
     @Override
@@ -156,16 +157,17 @@ public class MainActivity extends Activity {
         super.onResume();
         visible=true;
         displayOptions=kw.urtv.shared.DisplayOptions.load(this);kw.urtv.shared.DisplayOptions.Device device=displayOptions.device(this);lite=device.lite;imageEdge=device.edge;
+        if(!displayOptions.theme.equals(builtTheme)||!(displayOptions.surface+displayOptions.focusColor).equals(builtSurface)){recreate();return;}
         String identity=displayOptions.json()+":"+imageEdge;if(!identity.equals(displayIdentity)){displayIdentity=identity;wallIndex=-1;wallChangedAt=0;}
         readingShade.setBackgroundColor(Color.argb(displayOptions.overlayAlpha(),0,0,0));
-        clock.setTypeface(displayOptions.latin?font("medium"):font("display"));
+        clock.setTypeface(displayOptions.usesLatin()?font("medium"):font("display"));
         clock.setTextSize(58*displayOptions.textScale());date.setTextSize(14*displayOptions.textScale());greeting.setTextSize(15*displayOptions.textScale());
         title.setVisibility(dockCards.isEmpty()?View.VISIBLE:View.GONE);
         IntentFilter tf = new IntentFilter(Intent.ACTION_TIME_TICK);
         tf.addAction(Intent.ACTION_TIME_CHANGED);
         tf.addAction(Intent.ACTION_TIMEZONE_CHANGED);
         tf.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
-        registerReceiver(tick, tf);
+        registerReceiver(tick, tf);tickRegistered=true;
         updateClock();
         updateWifi();
         homeCard.refresh();
@@ -187,7 +189,7 @@ public class MainActivity extends Activity {
         super.onPause();
         visible=false;
         handler.removeCallbacks(rotateWallpaper);
-        unregisterReceiver(tick);
+        if(tickRegistered){unregisterReceiver(tick);tickRegistered=false;}
         if (inputsPopup != null) inputsPopup.dismiss();
         homeCard.pause();
     }
@@ -205,6 +207,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+        if(!Dock.prefs(this).getBoolean("setup_complete",false)){startActivity(new Intent(this,SetupActivity.class));return;}
         // Home pressed while already home: jump back to the first dock app.
         if (inputsPopup != null) inputsPopup.dismiss();
         if (!dockCards.isEmpty()) dockCards.get(0).requestFocus();
@@ -220,8 +223,9 @@ public class MainActivity extends Activity {
     // ---------------------------------------------------------------- layout
 
     private View buildUi() {
+        builtTheme=displayOptions.theme;builtSurface=displayOptions.surface+displayOptions.focusColor;
         FrameLayout root = new FrameLayout(this);
-        root.setBackgroundColor(Color.BLACK);
+        if(displayOptions.focused())root.setBackground(new kw.urtv.shared.FocusBackdrop(displayOptions.focusColor));else root.setBackgroundColor(palette.bg);
 
         // Wallpaper: two stacked layers so a new photo can crossfade in over the old one.
         wallBack = wallpaperLayer();
@@ -230,21 +234,19 @@ public class MainActivity extends Activity {
         root.addView(wallFront, new FrameLayout.LayoutParams(-1, -1));
         // Scrim: darker at the top (clock, pills) and bottom (dock) so text stays readable.
         View scrim = new View(this);
-        scrim.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[]{0xB3000000, 0x70000000, 0x50000000, 0x8C000000, 0xE6000000}));
+        if(displayOptions.focused())scrim.setBackgroundColor(Color.TRANSPARENT);else scrim.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0x50121922,0x10121922,0x90121922}));
+        try{wallpapers=getAssets().list("wallpapers");Arrays.sort(wallpapers);}catch(java.io.IOException ignored){}
         root.addView(scrim, new FrameLayout.LayoutParams(-1, -1));
         readingShade=new View(this);root.addView(readingShade,new FrameLayout.LayoutParams(-1,-1));
         gridShade = new View(this);
         gridShade.setBackgroundColor(0xB3000000);
         gridShade.setAlpha(0f);
         root.addView(gridShade, new FrameLayout.LayoutParams(-1, -1));
-        try {
-            wallpapers = getAssets().list("wallpapers");java.util.Arrays.sort(wallpapers);
-        } catch (java.io.IOException ignored) { }
+
 
         glow = new View(this);
         root.addView(glow, new FrameLayout.LayoutParams(-1, -1));
-        setGlow(glowColor);
+        setGlow(glowColor);glow.setVisibility(View.GONE);
 
         scroll = new HomeScrollView(this);
         scroll.setVerticalScrollBarEnabled(false);
@@ -264,15 +266,15 @@ public class MainActivity extends Activity {
         int screenH = getResources().getDisplayMetrics().heightPixels;
         content.addView(hero, new LinearLayout.LayoutParams(-1, screenH));
 
-        hero.addView(buildHeader(), lp(-1, -2, Gravity.TOP, dp(48), dp(36), dp(48), 0));
+        hero.addView(buildHeader(), lp(-1, -2, Gravity.TOP, dp(40), dp(20), dp(40), 0));
         // One transparent surface for the table below the pills and weather below the native clock.
-        homeCard = new HomeCard(this, hero, lp(-1, dp(238), Gravity.LEFT | Gravity.TOP, dp(48), dp(84), dp(48), 0));
+        homeCard = new HomeCard(this, hero, lp(-1, getResources().getDisplayMetrics().heightPixels-dp(105), Gravity.LEFT | Gravity.TOP, dp(40), dp(displayOptions.focused()?56:80), dp(40), 0));
 
         LinearLayout bottom = new LinearLayout(this);
         bottom.setOrientation(LinearLayout.VERTICAL);
         bottom.setClipChildren(false);
         bottom.setClipToPadding(false);
-        hero.addView(bottom, lp(-1, -2, Gravity.BOTTOM, dp(48), 0, dp(48), dp(30)));
+        hero.addView(bottom, lp(-1, -2, Gravity.BOTTOM, dp(40), 0, dp(40), dp(20)));
 
         title = text(34, "sans-serif-light", Color.WHITE);
         title.setShadowLayer(dp(18), 0, 0, 0x66000000);
@@ -285,17 +287,17 @@ public class MainActivity extends Activity {
         dockRow.setGravity(Gravity.CENTER);
         dockRow.setClipChildren(false);
         dockRow.setClipToPadding(false);
-        dockRow.setPadding(dp(20), dp(22), dp(20), dp(22));
+        dockRow.setPadding(dp(8), dp(10), dp(8), dp(10));
         GradientDrawable band = new GradientDrawable();
         band.setCornerRadius(dp(26));
         band.setColor(0x1FFFFFFF);
         band.setStroke(dp(1), 0x14FFFFFF);
-        dockRow.setBackground(band);
+        dockRow.setBackgroundColor(Color.TRANSPARENT);
         bottom.addView(dockRow, new LinearLayout.LayoutParams(-1, -2));
 
         appsLabel = text(11, "sans-serif-medium", 0x99FFFFFF);
         appsLabel.setText("كل التطبيقات");
-        appsLabel.setTextColor(GOLD);
+        appsLabel.setTextColor(palette.accent);
         content.addView(appsLabel, llp(-2, -2, dp(68), dp(8), 0, dp(18)));
 
         grid = new LinearLayout(this);
@@ -313,41 +315,47 @@ public class MainActivity extends Activity {
         LinearLayout left = new LinearLayout(this);
         left.setOrientation(LinearLayout.VERTICAL);
         // Top right, stacked tight: greeting, clock, date. Gravity.RIGHT, not END: for Arabic text END is the left.
-        greeting = text(15, "medium", GOLD);
+        greeting = text(13, "medium", 0xFF8EDBEA);
         greeting.setSingleLine(true);
         left.addView(greeting, llp(-2, -2, 0, 0, dp(4), 0));
+        greeting.setVisibility(View.GONE);
 
         LinearLayout clockRow = new LinearLayout(this);
         clockRow.setGravity(Gravity.BOTTOM);
         clockRow.setGravity(Gravity.TOP);
-        clock = text(58, "display", 0xFFFFFDF6);
+        clock = text(68, "medium", 0xFFF1F5FA);
         clock.setIncludeFontPadding(false);
         ampm = text(16, "medium", GOLD);
         clockRow.addView(ampm, llp(-2, -2, 0, dp(6), dp(8), 0));
         clockRow.addView(clock);
         left.addView(clockRow, llp(-2, -2, 0, dp(-2), 0, 0));
 
-        date = text(14, "regular", 0xFFC6BBA4);
+        date = text(13, "regular", 0xFFB9CADA);
         date.setSingleLine(true);
         left.addView(date, llp(-2, -2, 0, dp(-6), dp(4), 0));   // the display font leaves a deep gap under its digits
-        for (TextView t : new TextView[]{greeting, clock, ampm, date}) t.setShadowLayer(dp(3), 0, dp(1), 0x80000000);
-        left.setGravity(Gravity.RIGHT);
-        for (TextView t : new TextView[]{greeting, date}) t.setGravity(Gravity.RIGHT);
-        header.addView(left, new FrameLayout.LayoutParams(-2, -2, Gravity.RIGHT | Gravity.TOP));
+        for (TextView t : new TextView[]{greeting, clock, ampm, date}) t.setShadowLayer(palette.light?0:dp(3), 0, palette.light?0:dp(1), palette.light?Color.TRANSPARENT:0x80000000);
+        left.setGravity(Gravity.CENTER_HORIZONTAL);
+        for (TextView t : new TextView[]{greeting, date}) t.setGravity(Gravity.CENTER);
+        FrameLayout.LayoutParams clockLayout=new FrameLayout.LayoutParams(displayOptions.focused()?(getResources().getDisplayMetrics().widthPixels-dp(104))/2:dp(280),-2,Gravity.RIGHT|Gravity.TOP);clockLayout.topMargin=dp(displayOptions.focused()?44:68);header.addView(left,clockLayout);
+        left.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->{if(homeCard!=null)homeCard.alignBelowClock(b+dp(20));});
 
         LinearLayout right = new LinearLayout(this);
         right.setGravity(Gravity.CENTER_VERTICAL);
         right.setClipChildren(false);
-        TextView saver = pill("تطبيقاتي", R.drawable.ic_apps);
+        TextView saver = pill("التطبيقات", R.drawable.ic_apps);
         saver.setOnClickListener(v -> launch(new Intent(this,ManageAppsActivity.class)));
-        TextView inputs = pill("المصادر", R.drawable.ic_input);
+        TextView inputs = pill("HDMI والمصادر", R.drawable.ic_input);
         inputs.setOnClickListener(v -> showInputs(v));
+        TextView channels=pill("القنوات",R.drawable.ic_input);channels.setOnClickListener(v->openChannels());
         wifiPill = pill("واي فاي", R.drawable.ic_wifi);
         wifiPill.setOnClickListener(v -> launch(new Intent(Settings.ACTION_WIFI_SETTINGS)));
-        TextView settings = pill("الإعدادات", R.drawable.ic_settings);
-        settings.setOnClickListener(v -> launch(new Intent(this, PersonalizeActivity.class)));
-        for (TextView p : isInstalled(SAVER_PKG) ? new TextView[]{inputs, wifiPill, settings, saver}
-                                                  : new TextView[]{inputs, wifiPill, settings}) {
+        TextView settings = pill("إعدادات النظام", R.drawable.ic_settings);
+        settings.setOnClickListener(v -> launch(new Intent(Settings.ACTION_SETTINGS)));
+        TextView reminder=pill("التذكير",R.drawable.ic_screensaver);reminder.setOnClickListener(v->launch(new Intent().setClassName(SAVER_PKG,"kw.urtv.screensaver.ReminderActivity")));
+        TextView updates=pill("التحديث",R.drawable.ic_update);updates.setOnClickListener(v->launch(new Intent(this,UpdateActivity.class)));
+        TextView football=pill("المباريات",R.drawable.ic_apps);football.setOnClickListener(v->launch(new Intent(this,FootballActivity.class)));
+        for (TextView p : isInstalled(SAVER_PKG) ? new TextView[]{settings, inputs}
+                                                  : new TextView[]{settings, inputs}) {
             right.addView(p, llp(-2, dp(30), dp(10), 0, 0, 0));
             pills.add(p);
         }
@@ -362,21 +370,21 @@ public class MainActivity extends Activity {
         p.setGravity(Gravity.CENTER);
         android.graphics.drawable.Drawable ic = getDrawable(icon).mutate();
         ic.setBounds(0, 0, dp(16), dp(16));
-        ic.setTint(0xE6FFFFFF);
+        ic.setTint(palette.ink);
         p.setCompoundDrawables(null, null, ic, null);
         p.setCompoundDrawablePadding(dp(8));
         p.setPadding(dp(14), 0, dp(14), 0);
         p.setFocusable(true);
         p.setId(View.generateViewId());
         GradientDrawable bg = new GradientDrawable();
-        bg.setCornerRadius(dp(15));
-        bg.setColor(0x66000000);
-        bg.setStroke(dp(1), 0x33FFFFFF);
+        bg.setCornerRadius(dp(6));
+        bg.setColor(palette.panel);
+        bg.setStroke(0,Color.TRANSPARENT);
         p.setBackground(bg);
         p.setOnFocusChangeListener((v, has) -> {
-            bg.setColor(has ? 0xF2FFFFFF : 0x66000000);
-            ((TextView) v).setTextColor(has ? 0xFF111111 : 0xE6FFFFFF);
-            ic.setTint(has ? 0xFF111111 : 0xE6FFFFFF);
+            bg.setColor(has ? palette.accent : palette.panel);
+            ((TextView) v).setTextColor(has ? (palette.light?Color.WHITE:0xFF111111) : palette.ink);
+            ic.setTint(has ? (palette.light?Color.WHITE:0xFF111111) : palette.ink);
             v.animate().scaleX(has ? 1.03f : 1f).scaleY(has ? 1.03f : 1f)
                     .setInterpolator(new DecelerateInterpolator()).setDuration(lite?0:120).start();
             if (has) { lastFocusedId = v.getId(); scroll.smoothScrollTo(0, 0); fadeGlow(1f); }
@@ -422,9 +430,9 @@ public class MainActivity extends Activity {
 
         for (int i = 0; i < dock.size(); i++) {
             View tile = tile(dock.get(i), true);
-            int cardWidth=Math.min(dp(145),(getResources().getDisplayMetrics().widthPixels-dp(160))/Math.max(1,dock.size()));
+            int cardWidth=Math.min(dp(displayOptions.focused()?104:88),(getResources().getDisplayMetrics().widthPixels-dp(160))/Math.max(1,dock.size()));
             LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(cardWidth, -2);
-            p.setMargins(i == 0 ? 0 : dp(10), 0, i == dock.size() - 1 ? 0 : dp(10), 0);
+            p.setMargins(dp(10), 0, dp(10), 0);
             dockRow.addView(tile, p);
         }
 
@@ -509,19 +517,19 @@ public class MainActivity extends Activity {
         label.setSingleLine(true);
         label.setGravity(Gravity.CENTER);
         label.setAlpha(0f);
-        if (!inDock) box.addView(label, llp(-1, -2, 0, dp(10), 0, 0));
+        box.addView(label, llp(-1, dp(18), 0, dp(6), 0, 0));
 
         card.setOnClickListener(v -> launch(new Intent(Intent.ACTION_MAIN)
                 .addCategory(app.category)
                 .setComponent(app.component)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)));
         card.setOnFocusChangeListener((v, has) -> {
-            float s = has ? 1.045f : 1f;
-            v.animate().scaleX(s).scaleY(s).translationZ(has ? dp(14) : 0)
+            float s = 1f;
+            v.animate().scaleX(s).scaleY(s).translationZ(0)
                     .setInterpolator(has ? new DecelerateInterpolator() : new DecelerateInterpolator())
                     .setDuration(lite?0:120).start();
             shine.animate().alpha(has ? 1f : 0f).setDuration(lite?0:160).start();
-            label.animate().alpha(has ? 1f : 0f).translationY(has ? dp(4) : 0).setDuration(lite?0:200).start();
+            label.animate().alpha(has ? 1f : 0f) .translationY(0).setDuration(lite?0:200).start();
             if (!has) return;
             lastFocusedId = v.getId();
             if (inDock) {
@@ -546,12 +554,17 @@ public class MainActivity extends Activity {
     }
 
     /** Explicit D-pad targets: one row per press, ends of rows and of the top bar don't wrap. */
+    private void horizontalFocus(View view,View previous,View next){
+        // Lists follow reading order; D-pad LEFT/RIGHT always follow physical screen direction.
+        boolean rtl=getResources().getConfiguration().getLayoutDirection()==View.LAYOUT_DIRECTION_RTL;
+        view.setNextFocusLeftId((rtl?next:previous).getId());
+        view.setNextFocusRightId((rtl?previous:next).getId());
+    }
     private void wireFocus() {
         int d = dockCards.size(), g = gridCards.size();
         for (int i = 0; i < pills.size(); i++) {
             View p = pills.get(i);
-            p.setNextFocusLeftId(i == 0 ? p.getId() : pills.get(i - 1).getId());
-            p.setNextFocusRightId(i == pills.size() - 1 ? p.getId() : pills.get(i + 1).getId());
+            horizontalFocus(p,i==0?p:pills.get(i-1),i==pills.size()-1?p:pills.get(i+1));
             p.setNextFocusUpId(p.getId());
             p.setNextFocusDownId(d > 0 ? dockCards.get(Math.min(d - 1, d / 2)).getId() : p.getId());
         }
@@ -559,8 +572,7 @@ public class MainActivity extends Activity {
         for (int i = 0; i < d; i++) {
             View c = dockCards.get(i);
             c.setNextFocusUpId(topId);
-            c.setNextFocusLeftId(i == 0 ? c.getId() : dockCards.get(i - 1).getId());
-            c.setNextFocusRightId(i == d - 1 ? c.getId() : dockCards.get(i + 1).getId());
+            horizontalFocus(c,i==0?c:dockCards.get(i-1),i==d-1?c:dockCards.get(i+1));
             c.setNextFocusDownId(g > 0 ? gridCards.get(Math.min(i, g - 1)).getId() : c.getId());
         }
         int lastRow = (g - 1) / cols;
@@ -572,8 +584,7 @@ public class MainActivity extends Activity {
                     : gridCards.get(j - cols).getId());
             c.setNextFocusDownId(j + cols < g ? gridCards.get(j + cols).getId()
                     : r < lastRow ? gridCards.get(g - 1).getId() : c.getId());
-            c.setNextFocusLeftId(col == 0 ? c.getId() : gridCards.get(j - 1).getId());
-            c.setNextFocusRightId(col == cols - 1 || j == g - 1 ? c.getId() : gridCards.get(j + 1).getId());
+            horizontalFocus(c,col==0?c:gridCards.get(j-1),col==cols-1||j==g-1?c:gridCards.get(j+1));
         }
     }
 
@@ -678,7 +689,7 @@ public class MainActivity extends Activity {
         list.setPadding(dp(8), dp(8), dp(8), dp(8));
         GradientDrawable bg = new GradientDrawable();
         bg.setCornerRadius(dp(16));
-        bg.setColor(0xF02A2A2E);
+        bg.setColor(palette.panel);
         bg.setStroke(dp(1), 0x26FFFFFF);
         list.setBackground(bg);
         PopupWindow pw = new PopupWindow(list, dp(230), -2, true);
@@ -702,13 +713,32 @@ public class MainActivity extends Activity {
         rows.get(0).requestFocus();
     }
 
+    /** Native TV handoff only: never simulate remote keys or change input services/settings. */
+    private boolean nativeIntent(Intent intent){try{if(intent.resolveActivity(getPackageManager())!=null){startActivity(intent);return true;}}catch(RuntimeException ignored){}return false;}
+    private boolean nativePackage(String pkg){if(pkg==null||pkg.equals(getPackageName()))return false;Intent intent=getPackageManager().getLeanbackLaunchIntentForPackage(pkg);if(intent==null)intent=getPackageManager().getLaunchIntentForPackage(pkg);return intent!=null&&nativeIntent(intent);}
+    private boolean nativeTvIntent(Intent intent){
+        // A generic content viewer can claim TV URIs. Only explicit system TV handlers are eligible.
+        for(android.content.pm.ResolveInfo result:getPackageManager().queryIntentActivities(intent,android.content.pm.PackageManager.GET_RESOLVED_FILTER)){
+            if(result.activityInfo==null||(result.activityInfo.applicationInfo.flags&(android.content.pm.ApplicationInfo.FLAG_SYSTEM|android.content.pm.ApplicationInfo.FLAG_UPDATED_SYSTEM_APP))==0)continue;
+            String pkg=result.activityInfo.packageName;boolean trusted=pkg.equals(liveTvPkg)||pkg.equals("com.smartdevice.livetv")||pkg.equals("com.android.tv")||pkg.equals("com.google.android.tv");
+            if(result.filter!=null)for(int n=0;n<result.filter.countDataAuthorities();n++)if("android.media.tv".equals(result.filter.getDataAuthority(n).getHost()))trusted=true;
+            if(trusted&&nativeIntent(new Intent(intent).setComponent(new android.content.ComponentName(pkg,result.activityInfo.name))))return true;
+        }return false;
+    }
+    private void openChannels(){
+        if(nativeTvIntent(new Intent(Intent.ACTION_VIEW,TvContract.Channels.CONTENT_URI)))return;
+        try{TvInputManager manager=(TvInputManager)getSystemService(TV_INPUT_SERVICE);if(manager!=null)for(TvInputInfo input:manager.getTvInputList())if(!input.isPassthroughInput()&&!input.isHidden(this)&&nativePackage(input.getServiceInfo().packageName))return;}catch(RuntimeException ignored){}
+        for(String pkg:new String[]{liveTvPkg,"com.smartdevice.livetv","com.android.tv","com.google.android.tv","com.tcl.tv"})if(nativePackage(pkg))return;
+        new android.app.AlertDialog.Builder(this).setTitle("القنوات").setMessage("لم يوفّر هذا الجهاز تطبيق قنوات يمكن فتحه. استخدم واجهة التلفزيون الأصلية أو إعداداته؛ لم تتغير أي خدمة أو قناة.").setPositiveButton("إعدادات التلفزيون",(d,n)->launch(new Intent(Settings.ACTION_SETTINGS))).setNegativeButton("رجوع",null).show();
+    }
+
     private void showInputs(View anchor) {
         LinearLayout list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
         list.setPadding(dp(8), dp(8), dp(8), dp(8));
         GradientDrawable bg = new GradientDrawable();
         bg.setCornerRadius(dp(16));
-        bg.setColor(0xF02A2A2E);
+        bg.setColor(palette.panel);
         bg.setStroke(dp(1), 0x26FFFFFF);
         list.setBackground(bg);
 
@@ -717,21 +747,21 @@ public class MainActivity extends Activity {
 
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
         List<TvInputInfo> inputs = new ArrayList<>();
-        if (tim != null) for (TvInputInfo t : tim.getTvInputList()) {
+        try{if (tim != null) for (TvInputInfo t : tim.getTvInputList()) {
             if (t.isPassthroughInput() && !t.isHidden(this)) inputs.add(t);
-        }
+        }}catch(RuntimeException ignored){}
         Collections.sort(inputs, (x, y) -> inputLabel(x).compareToIgnoreCase(inputLabel(y)));
         for (TvInputInfo t : inputs) {
             rows.add(inputRow(inputLabel(t), () -> {
                 Intent i = new Intent(Intent.ACTION_VIEW, TvContract.buildChannelUriForPassthroughInput(t.getId()));
                 i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                if (!launch(i)) openPackage(inputPickerPkg);
+                if (!nativeTvIntent(i)&&!nativePackage(inputPickerPkg))android.widget.Toast.makeText(this,"تعذر فتح المدخل من واجهة الشركة؛ استخدم إعدادات التلفزيون",android.widget.Toast.LENGTH_LONG).show();
             }));
         }
         if (isInstalled(liveTvPkg)) rows.add(inputRow("البث التلفزيوني", () -> openPackage(liveTvPkg)));
         if (inputs.isEmpty() && isInstalled(inputPickerPkg)) rows.add(inputRow("كل المصادر…", () -> openPackage(inputPickerPkg)));
 
-        if (rows.isEmpty()) rows.add(inputRow("الإعدادات", () -> launch(new Intent(Settings.ACTION_SETTINGS))));
+        if (rows.isEmpty()){TextView hint=text(13,"sans-serif",palette.muted);hint.setText("لا توجد مداخل متاحة من النظام");hint.setPadding(dp(14),dp(8),dp(14),dp(8));list.addView(hint);rows.add(inputRow("إعدادات التلفزيون", () -> launch(new Intent(Settings.ACTION_SETTINGS))));}
         for (TextView r : rows) {
             r.setOnClickListener(v -> { pw.dismiss(); ((Runnable) v.getTag()).run(); });
             list.addView(r, new LinearLayout.LayoutParams(-1, dp(36)));
@@ -779,7 +809,7 @@ public class MainActivity extends Activity {
     // ---------------------------------------------------------------- status
 
     private void updateClock() {
-        Calendar now = Calendar.getInstance(java.util.TimeZone.getTimeZone("Asia/Kuwait"));
+        Calendar now = Calendar.getInstance(java.util.TimeZone.getTimeZone(kw.urtv.shared.Place.load(this).zone));
         int h = now.get(Calendar.HOUR_OF_DAY);
         greeting.setText(h < 4 ? "تصبح على خير" : h < 12 ? "صباح الخير" : "مساء الخير");
         int hh = displayOptions.hour24 ? h : h % 12 == 0 ? 12 : h % 12;
@@ -789,15 +819,15 @@ public class MainActivity extends Activity {
         try {
             android.icu.text.SimpleDateFormat f = new android.icu.text.SimpleDateFormat(
                     "EEEE، d MMMM y", new android.icu.util.ULocale("ar_KW@calendar=islamic-umalqura"));
-            f.setTimeZone(android.icu.util.TimeZone.getTimeZone("Asia/Kuwait"));
+            f.setTimeZone(android.icu.util.TimeZone.getTimeZone(kw.urtv.shared.Place.load(this).zone));
             hijri = f.format(now.getTime()).replaceAll("\\s*هـ\\s*$", "") + " هـ";
         } catch (Exception ignored) { }
         SimpleDateFormat gregFormat = new SimpleDateFormat("d MMMM", new Locale("ar", "KW"));
-        gregFormat.setTimeZone(java.util.TimeZone.getTimeZone("Asia/Kuwait"));
+        gregFormat.setTimeZone(java.util.TimeZone.getTimeZone(kw.urtv.shared.Place.load(this).zone));
         String greg = gregFormat.format(now.getTime());
-        kw.urtv.shared.CalendarData.Day officialDate=calendarStore.get(java.time.LocalDate.now(kw.urtv.shared.CalendarData.ZONE));
+        kw.urtv.shared.CalendarData.Day officialDate=kw.urtv.shared.Place.load(this).country.equals("KW")?calendarStore.get(java.time.LocalDate.now(kw.urtv.shared.Place.load(this).zoneId())):null;
         if(officialDate!=null)hijri=officialDate.hijri+" هـ";
-        date.setText(arabicDigits(hijri.isEmpty() ? greg : hijri + "  ·  " + greg));
+        date.setText(displayOptions.numbers(java.time.LocalDate.now(kw.urtv.shared.Place.load(this).zoneId()).format(java.time.format.DateTimeFormatter.ofPattern("EEEE، d MMMM yyyy",new Locale("ar")))));
     }
 
     private String arabicDigits(String s) {
@@ -889,7 +919,7 @@ public class MainActivity extends Activity {
     /** Decode the next photo off the main thread, then crossfade it in over the current one. */
     private void nextWallpaper() {
         handler.removeCallbacks(rotateWallpaper);
-        if (wallpapers.length == 0) return;
+        if (displayOptions.focused() || !visible || wallpapers.length == 0) return;
         final int total = wallpapers.length;
         if (wallIndex < 0) wallIndex = prefs().getInt("wallpaper", -1);
         wallIndex = prefs().getBoolean("wallpaper_pinned",false)?Math.floorMod(prefs().getInt("wallpaper",0),total):(wallIndex + 1) % total;
@@ -912,7 +942,7 @@ public class MainActivity extends Activity {
 
     private void showWallpaper(Bitmap bm) {
         if (bm == null) return;
-        if(isDestroyed()||!visible){bm.recycle();return;}
+        if(isDestroyed()||!visible||displayOptions.focused()){bm.recycle();return;}
         // Swap roles: the old front becomes the back, the new photo fades in on top.
         ImageView old = wallFront;
         wallFront = wallBack;
@@ -933,7 +963,7 @@ public class MainActivity extends Activity {
 
     private void scheduleWallpaper(long delay) {
         handler.removeCallbacks(rotateWallpaper);
-        handler.postDelayed(rotateWallpaper, Math.max(1000, delay));
+        if(!displayOptions.focused()&&visible)handler.postDelayed(rotateWallpaper,Math.max(1000,delay));
     }
 
     /** Average the banner's vivid pixels, then push saturation so the glow reads as a colour. */
@@ -1014,7 +1044,7 @@ public class MainActivity extends Activity {
         if (i != null) launch(i);
     }
 
-    static final int GOLD = 0xFFD6AF6B;
+    static final int GOLD = 0xFF8EDBEA;
     static final String SAVER_PKG = "kw.urtv.screensaver";
     private final Map<String, Typeface> fonts = new HashMap<>();
 
@@ -1036,7 +1066,7 @@ public class MainActivity extends Activity {
         TextView t = new TextView(this);
         t.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp);
         t.setTypeface(font(family));
-        t.setTextColor(color);
+        t.setTextColor(palette.text(color));
         return t;
     }
 
@@ -1064,15 +1094,6 @@ public class MainActivity extends Activity {
         return Color.rgb((int) (Color.red(c) * f), (int) (Color.green(c) * f), (int) (Color.blue(c) * f));
     }
 
-    @Override
-    public boolean dispatchKeyEvent(KeyEvent e) {
-        // Menu key on the remote opens the Inputs dropdown.
-        if (e.getKeyCode() == KeyEvent.KEYCODE_MENU && e.getAction() == KeyEvent.ACTION_UP && !pills.isEmpty()) {
-            showInputs(pills.get(0));
-            return true;
-        }
-        return super.dispatchKeyEvent(e);
-    }
 
     /** 16:9 container. */
     static final class AspectFrame extends FrameLayout {

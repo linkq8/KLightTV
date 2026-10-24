@@ -1,0 +1,244 @@
+{
+  "events": [
+    {
+      "id": "401915397",
+      "date": "2026-10-20T19:00Z",
+      "name": "Villarreal at Liverpool",
+      "competitions": [
+        {
+          "competitors": [
+            {
+              "homeAway": "home",
+              "score": {
+                "$ref": "http://sports.core.api.espn.pvt/v2/sports/soccer/leagues/uefa.champions/events/401915397/competitions/401915397/competitors/364/scores/38?lang=en&region=us",
+                "value": 4.0,
+                "displayValue": "4",
+                "winner": true,
+                "source": {
+                  "id": "38",
+                  "description": "SA.ENVOY"
+                }
+              },
+              "team": {
+                "id": "364",
+                "displayName": "Liverpool"
+              }
+            },
+            {
+              "homeAway": "away",
+              "score": {
+                "$ref": "http://sports.core.api.espn.pvt/v2/sports/soccer/leagues/uefa.champions/events/401915397/competitions/401915397/competitors/102/scores/38?lang=en&region=us",
+                "value": 3.0,
+                "displayValue": "3",
+                "winner": false,
+                "source": {
+                  "id": "38",
+                  "description": "SA.ENVOY"
+                }
+              },
+              "team": {
+                "id": "102",
+                "displayName": "Villarreal"
+              }
+            }
+          ],
+          "status": {
+            "clock": 5400.0,
+            "addedClock": 180.0,
+            "displayClock": "90'+3'",
+            "period": 2,
+            "type": {
+              "id": "28",
+              "name": "STATUS_FULL_TIME",
+              "state": "post",
+              "completed": true,
+              "description": "Full Time",
+              "detail": "FT",
+              "shortDetail": "FT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "401879262",
+      "date": "2026-10-17T14:00Z",
+      "name": "Liverpool at Brentford",
+      "competitions": [
+        {
+          "competitors": [
+            {
+              "homeAway": "home",
+              "score": {
+                "$ref": "http://sports.core.api.espn.pvt/v2/sports/soccer/leagues/eng.1/events/401879262/competitions/401879262/competitors/337/scores/38?lang=en&region=us",
+                "value": 1.0,
+                "displayValue": "1",
+                "winner": false,
+                "source": {
+                  "id": "38",
+                  "description": "SA.ENVOY"
+                }
+              },
+              "team": {
+                "id": "337",
+                "displayName": "Brentford"
+              }
+            },
+            {
+              "homeAway": "away",
+              "score": {
+                "$ref": "http://sports.core.api.espn.pvt/v2/sports/soccer/leagues/eng.1/events/401879262/competitions/401879262/competitors/364/scores/38?lang=en&region=us",
+                "value": 2.0,
+                "displayValue": "2",
+                "winner": true,
+                "source": {
+                  "id": "38",
+                  "description": "SA.ENVOY"
+                }
+              },
+              "team": {
+                "id": "364",
+                "displayName": "Liverpool"
+              }
+            }
+          ],
+          "status": {
+            "clock": 5400.0,
+            "addedClock": 420.0,
+            "displayClock": "90'+7'",
+            "period": 2,
+            "type": {
+              "id": "28",
+              "name": "STATUS_FULL_TIME",
+              "state": "post",
+              "completed": true,
+              "description": "Full Time",
+              "detail": "FT",
+              "shortDetail": "FT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "401915415",
+      "date": "2026-10-14T16:45Z",
+      "name": "Liverpool at LASK Linz",
+      "competitions": [
+        {
+          "competitors": [
+            {
+              "homeAway": "home",
+              "score": {
+                "$ref": "http://sports.core.api.espn.pvt/v2/sports/soccer/leagues/uefa.champions/events/401915415/competitions/401915415/competitors/4411/scores/38?lang=en&region=us",
+                "value": 3.0,
+                "displayValue": "3",
+                "winner": false,
+                "source": {
+                  "id": "38",
+                  "description": "SA.ENVOY"
+                }
+              },
+              "team": {
+                "id": "4411",
+                "displayName": "LASK Linz"
+              }
+            },
+            {
+              "homeAway": "away",
+              "score": {
+                "$ref": "http://sports.core.api.espn.pvt/v2/sports/soccer/leagues/uefa.champions/events/401915415/competitions/401915415/competitors/364/scores/38?lang=en&region=us",
+                "value": 6.0,
+                "displayValue": "6",
+                "winner": true,
+                "source": {
+                  "id": "38",
+                  "description": "SA.ENVOY"
+                }
+              },
+              "team": {
+                "id": "364",
+                "displayName": "Liverpool"
+              }
+            }
+          ],
+          "status": {
+            "clock": 5400.0,
+            "addedClock": 180.0,
+            "displayClock": "90'+3'",
+            "period": 2,
+            "type": {
+              "id": "28",
+              "name": "STATUS_FULL_TIME",
+              "state": "post",
+              "completed": true,
+              "description": "Full Time",
+              "detail": "FT",
+              "shortDetail": "FT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "401879264",
+      "date": "2026-10-11T15:30Z",
+      "name": "Manchester City at Liverpool",
+      "competitions": [
+        {
+          "competitors": [
+            {
+              "homeAway": "home",
+              "score": {
+                "$ref": "http://sports.core.api.espn.pvt/v2/sports/soccer/leagues/eng.1/events/401879264/competitions/401879264/competitors/364/scores/38?lang=en&region=us",
+                "value": 0.0,
+                "displayValue": "0",
+                "winner": false,
+                "source": {
+                  "id": "38",
+                  "description": "SA.ENVOY"
+                }
+              },
+              "team": {
+                "id": "364",
+                "displayName": "Liverpool"
+              }
+            },
+            {
+              "homeAway": "away",
+              "score": {
+                "$ref": "http://sports.core.api.espn.pvt/v2/sports/soccer/leagues/eng.1/events/401879264/competitions/401879264/competitors/382/scores/38?lang=en&region=us",
+                "value": 3.0,
+                "displayValue": "3",
+                "winner": true,
+                "source": {
+                  "id": "38",
+                  "description": "SA.ENVOY"
+                }
+              },
+              "team": {
+                "id": "382",
+                "displayName": "Manchester City"
+              }
+            }
+          ],
+          "status": {
+            "clock": 5400.0,
+            "addedClock": 180.0,
+            "displayClock": "90'+3'",
+            "period": 2,
+            "type": {
+              "id": "28",
+              "name": "STATUS_FULL_TIME",
+              "state": "post",
+              "completed": true,
+              "description": "Full Time",
+              "detail": "FT",
+              "shortDetail": "FT"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

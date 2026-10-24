@@ -19,7 +19,19 @@ class Fake:
   if args[:2]==('pm','list'):return 'feature:android.software.leanback'
   if args[:2]==('dumpsys','activity'):return 'mResumedActivity: kw.urtv.home/.MainActivity'
   return 'test'
+REAL_GATE=m.safety.gate
 class Tests(unittest.TestCase):
+ def setUp(self):
+  # Installer behavior is tested independently from the production safety validator.
+  self.gate=patch.object(m.safety,"gate",return_value=pathlib.Path("test-policy-record")).start();patch.object(m.safety,"finish").start();self.addCleanup(patch.stopall)
+ def test_missing_policy_blocks_install_even_with_files(self):
+  f=Fake();state=m.inspect(f)
+  with tempfile.TemporaryDirectory() as d,patch.object(m.safety,"gate",side_effect=REAL_GATE):
+   files=[pathlib.Path(d)/n for n in m.FILES]
+   for file in files:file.write_bytes(b"test")
+   with self.assertRaises(ValueError):m.install(f,files,state)
+   self.assertFalse(any(c[0]=="install" or c[:2]==("settings","put") for c in f.calls))
+
  def test_explicit_device_snapshot_and_restore(self):
   f=Fake();state=m.inspect(f)
   with tempfile.TemporaryDirectory() as d:

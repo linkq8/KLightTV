@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+echo "Legacy device changes are blocked. Use tools/device_safety.py, then reviewed tools/install.py or tools/tv-manager/server.py. No device was changed." >&2
+exit 2
 # Disable every package in a debloat list (one pm call per shell command; chained pm calls can stop early).
 # Packages are disabled for user 0, never uninstalled. Undo with optimize/restore.sh <same list>.
 # Refuses anything in optimize/lists/keep.txt.

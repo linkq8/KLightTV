@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+echo "Legacy device changes are blocked. Use tools/device_safety.py, then reviewed tools/install.py or tools/tv-manager/server.py. No device was changed." >&2
+exit 2
 # Turn back on anything from optimize/lists/keep.txt that is disabled (AirPlay, casting, mirroring, voice, remote,
 # inputs, tuner, firmware updates, Play Store, Google services). Our scripts never disable these, but a TV
 # optimized before, by other tools or older versions, may have them off. Safe to run any time.
