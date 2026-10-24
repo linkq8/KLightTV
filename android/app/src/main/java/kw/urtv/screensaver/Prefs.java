@@ -8,7 +8,8 @@ final class Prefs {
     private final SharedPreferences sp; private final Context context;
     Prefs(Context c) { context=c.getApplicationContext(); sp = c.getSharedPreferences("kuwait_settings", Context.MODE_PRIVATE); }
     kw.urtv.shared.Place place(){return kw.urtv.shared.Place.local(context);}
-    void setPlace(kw.urtv.shared.Place p){sp.edit().putString("place",p.json()).putString("cityName",p.name).putString("cityLat",String.valueOf(p.lat)).putString("cityLon",String.valueOf(p.lon)).apply();PrayerAlerts.schedule(context);}
+    void setPlace(kw.urtv.shared.Place p){setPlace(p,null);}
+    void setPlace(kw.urtv.shared.Place p,int[] corrections){String encoded=corrections==null?null:kw.urtv.shared.PrayerCorrections.encode(corrections);SharedPreferences.Editor edit=sp.edit().putString("place",p.json()).putString("cityName",p.name).putString("cityLat",String.valueOf(p.lat)).putString("cityLon",String.valueOf(p.lon));if(encoded!=null)edit.putString(kw.urtv.shared.PrayerCorrections.key(p),encoded);edit.apply();PrayerAlerts.schedule(context);}
     String[] city() { kw.urtv.shared.Place p=place();return new String[]{p.name,String.valueOf(p.lat),String.valueOf(p.lon)}; }
     void setCity(String name,String lat,String lon){setPlace(kw.urtv.shared.Place.legacy(name,Double.parseDouble(lat),Double.parseDouble(lon)));}
     int[] adjustments(){try{return kw.urtv.shared.PrayerCorrections.parse(sp.getString(kw.urtv.shared.PrayerCorrections.key(place()),"0,0,0,0,0,0"));}catch(Exception invalid){return new int[6];}}
