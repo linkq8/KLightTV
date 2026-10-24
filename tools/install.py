@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """KLightTV guided, reversible ADB setup. No OEM package is disabled or removed."""
 from __future__ import annotations
-import argparse,datetime,hashlib,ipaddress,json,os,pathlib,re,shlex,shutil,subprocess,sys,urllib.request
+import argparse,datetime,hashlib,ipaddress,json,os,pathlib,re,shlex,shutil,subprocess,sys,urllib.request,zipfile
 sys.path.insert(0,str(pathlib.Path(__file__).resolve().parent))
 import device_safety as safety
 REPO='linkq8/KLightTV';VERSION='1.10.3'
@@ -68,11 +68,42 @@ def save_snapshot(state,root=None):
  stamp=datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S%fZ');key=hashlib.sha256(state['android_id'].encode()).hexdigest()[:10]
  path=root/f'{stamp}-{key}.json';path.write_text(json.dumps(state,ensure_ascii=False,indent=2));path.chmod(0o600);return path
 
+def prepare_backup(adb,state,root=None):
+ """Persist original settings and every installed APK split before any mutation.
+ Android does not expose private app data through ordinary production ADB.
+ """
+ snapshot=save_snapshot(state,root)
+ folder=snapshot.with_suffix('');folder.mkdir(mode=0o700)
+ manifest=dict(device=state,apks=[],private_app_data=False,
+  limitation='Private app data is not backed up. Export KLightTV preferences separately; this is not a full Android image.')
+ for package,raw in state['installed'].items():
+  if adb.shell('pm','path',package)!=raw:raise ValueError('Installed package changed during backup; inspect again')
+  lines=raw.splitlines()
+  if len(lines)>128:raise ValueError('Too many APK splits')
+  for index,line in enumerate(lines):
+   if not re.fullmatch(r'package:/(?:data|system|product|vendor|system_ext|apex)/[A-Za-z0-9_./=+~-]+\.apk',line):raise ValueError('Unknown original APK path; backup aborted')
+   target=folder/f'{package}-{index}.apk'
+   adb.call('pull',line.removeprefix('package:'),str(target),timeout=180)
+   if target.is_symlink() or not target.is_file() or not zipfile.is_zipfile(target):raise ValueError('Original APK backup failed')
+   with zipfile.ZipFile(target) as archive:
+    if archive.testzip() is not None:raise ValueError('Original APK checksum verification failed')
+   target.chmod(0o600)
+   manifest['apks'].append(dict(package=package,path=target.name,size=target.stat().st_size,sha256=hashlib.sha256(target.read_bytes()).hexdigest()))
+ path=folder/'manifest.json';safety.write(path,manifest)
+ # Verify the durable manifest and the pulled files before permitting installation.
+ saved=safety.read(path)
+ if saved!=manifest:raise ValueError('Backup verification failed')
+ for entry in saved['apks']:
+  if hashlib.sha256((folder/entry['path']).read_bytes()).hexdigest()!=entry['sha256']:raise ValueError('Backup checksum mismatch')
+ return path
+
 def restore(adb,state,audit=None,review=None):
  if state.get('home') and not re.fullmatch(r'[\w.]+/[\w.$]+',state['home']):raise ValueError('Invalid Home component')
  for key,value in state['dream'].items():
   if key not in DREAM_KEYS or (value!='null' and not re.fullmatch(r'[\w.,/$]+',value)):raise ValueError('Invalid screensaver value')
  if adb.shell('getprop','ro.build.fingerprint')!=state['fingerprint'] or adb.shell('settings','get','secure','android_id')!=state['android_id']:raise RuntimeError('Snapshot belongs to a different device or system')
+ backup=prepare_backup(adb,inspect(adb))
+ print('Verified pre-restore backup: '+str(backup))
  policy_record=safety.gate(adb.shell,adb.serial,audit,review,[dict(kind='restore-install',snapshot_sha256=safety.digest(state))],recovery=True)
  print('Mandatory verification record: '+str(policy_record))
  if state['home']:adb.shell('cmd','package','set-home-activity','--user','0',state['home'])
@@ -93,6 +124,9 @@ def install(adb,files,state,home=False,dream=False,audit=None,review=None):
  if state.get("fingerprint")!=adb.shell("getprop","ro.build.fingerprint") or state.get("android_id")!=adb.shell("settings","get","secure","android_id"):raise ValueError("Installation snapshot does not match the connected device")
  if home and not state.get("home"):raise ValueError("Original Home must be known before any install")
  operations=install_plan(files,home,dream)
+ backup=prepare_backup(adb,state)
+ print("Verified pre-install backup: "+str(backup))
+ print("Backup covers original APKs and Home/screensaver settings, not private Android app data.")
  policy_record=safety.gate(adb.shell,adb.serial,audit,review,operations)
  print('Mandatory verification record: '+str(policy_record))
  for path in files:
@@ -116,7 +150,7 @@ def install(adb,files,state,home=False,dream=False,audit=None,review=None):
   else:
    adb.shell('cmd','package','set-home-activity','--user','0',state['home'])
    raise RuntimeError('Firmware kept another Home; original Home restored. APKs are installed.')
- safety.finish(policy_record,[dict(ok=True,operation=op) for op in operations])
+ safety.finish(policy_record,[dict(ok=True,operation=op,backup=str(backup)) for op in operations])
  adb.shell('am','start','-n','kw.urtv.screensaver/.SettingsActivity')
 
 def main():

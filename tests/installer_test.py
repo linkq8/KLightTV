@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import importlib.util,pathlib,tempfile,unittest,json
+import importlib.util,pathlib,tempfile,unittest,json,zipfile
 from unittest.mock import patch
 r=pathlib.Path(__file__).resolve().parents[1];spec=importlib.util.spec_from_file_location('installer',r/'tools/install.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 class Fake:
@@ -16,14 +16,48 @@ class Fake:
   if args[:3]==('settings','delete','secure'):self.settings[args[3]]='null';return ''
   if args[:3]==('cmd','package','resolve-activity'):return 'com.example.home/.Home'
   if args[:2]==('cat','/proc/meminfo'):return 'MemTotal: 2097152 kB'
+  if args[:2]==('pm','path'):return ''
   if args[:2]==('pm','list'):return 'feature:android.software.leanback'
   if args[:2]==('dumpsys','activity'):return 'mResumedActivity: kw.urtv.home/.MainActivity'
   return 'test'
 REAL_GATE=m.safety.gate
+REAL_BACKUP=m.prepare_backup
 class Tests(unittest.TestCase):
  def setUp(self):
   # Installer behavior is tested independently from the production safety validator.
+  self.backup=patch.object(m,"prepare_backup",return_value=pathlib.Path("verified-test-backup")).start()
   self.gate=patch.object(m.safety,"gate",return_value=pathlib.Path("test-policy-record")).start();patch.object(m.safety,"finish").start();self.addCleanup(patch.stopall)
+ def test_backup_failure_blocks_every_mutation(self):
+  f=Fake();state=m.inspect(f)
+  with tempfile.TemporaryDirectory() as d:
+   files=[pathlib.Path(d)/n for n in m.FILES]
+   for file in files:file.write_bytes(b'test')
+   self.backup.side_effect=OSError('disk full')
+   with self.assertRaises(OSError):m.install(f,files,state,True,True)
+   self.assertFalse(any(c[0]=='install' or c[:2]==('settings','put') or c[:3]==('cmd','package','set-home-activity') for c in f.calls))
+   self.gate.assert_not_called()
+ def test_backup_failure_blocks_restore(self):
+  f=Fake();state=m.inspect(f);self.backup.side_effect=OSError('backup unavailable')
+  with self.assertRaises(OSError):m.restore(f,state)
+  self.assertFalse(any(c[:2]==('settings','put') or c[:2]==('settings','delete') or c[:3]==('cmd','package','set-home-activity') for c in f.calls))
+  self.gate.assert_not_called()
+ def test_original_split_apks_are_pulled_and_verified(self):
+  # Call the unpatched production function stored before setUp.
+  class Original(Fake):
+   def shell(self,*args):
+    if args[:2]==('pm','path'):return 'package:/data/app/base.apk\npackage:/data/app/split_config.apk' if args[2]=='kw.urtv.home' else ''
+    return super().shell(*args)
+   def call(self,*args,**kwargs):
+    if args[0]=='pull':
+     with zipfile.ZipFile(args[2],'w') as z:z.writestr('AndroidManifest.xml','test fixture')
+     return 'pulled'
+    return super().call(*args,**kwargs)
+  f=Original();state=m.inspect(f)
+  with tempfile.TemporaryDirectory() as d:
+   path=REAL_BACKUP(f,state,pathlib.Path(d));saved=json.loads(path.read_text())
+   self.assertEqual(len(saved['apks']),2);self.assertFalse(saved['private_app_data'])
+   self.assertTrue(all((path.parent/e['path']).is_file() for e in saved['apks']))
+   self.assertFalse(any(c[0]=='install' for c in f.calls))
  def test_missing_policy_blocks_install_even_with_files(self):
   f=Fake();state=m.inspect(f)
   with tempfile.TemporaryDirectory() as d,patch.object(m.safety,"gate",side_effect=REAL_GATE):

@@ -49,6 +49,7 @@ final class ScreenView extends View {
     private final kw.urtv.shared.Palette palette;private final kw.urtv.shared.DisplayOptions options;
     private int imageEdge;
     private final kw.urtv.shared.FocusBackdrop focusBackdrop;
+    private final kw.urtv.shared.SimplePrayerFace simpleFace;
     private final Shader veil=new LinearGradient(0,0,0,1080,
             new int[]{0xDB101D2D,0x87101D2D,0x50101D2D,0x45101D2D,0xE8101D2D},
             new float[]{0,.22f,.46f,.74f,1},Shader.TileMode.CLAMP);
@@ -79,7 +80,7 @@ final class ScreenView extends View {
     static ScreenView create(Context context){return new ScreenView(context);}
     private ScreenView(Context context) {
         super(context);
-        options=kw.urtv.shared.DisplayOptions.load(context);palette=new kw.urtv.shared.Palette(context,options);imageEdge=options.device(context).edge;focusBackdrop=new kw.urtv.shared.FocusBackdrop(options.focusColor);focusBackdrop.setBounds(0,0,1920,1080);
+        simpleFace=new kw.urtv.shared.SimplePrayerFace(context);options=kw.urtv.shared.DisplayOptions.load(context);palette=new kw.urtv.shared.Palette(context,options);imageEdge=options.device(context).edge;focusBackdrop=new kw.urtv.shared.FocusBackdrop(options.focusColor);focusBackdrop.setBounds(0,0,1920,1080);
         medium=Typeface.createFromAsset(context.getAssets(),"fonts/Thmanyah-Medium.otf");
         regular=Typeface.createFromAsset(context.getAssets(),"fonts/Thmanyah-Regular.otf");
         display=Typeface.createFromAsset(context.getAssets(),"fonts/ThmanyahDisplay-Bold.otf");
@@ -150,10 +151,8 @@ final class ScreenView extends View {
         canvas.save();canvas.translate(shift[0],shift[1]);
 
         if(options.focused()){
-            text(canvas,gregorian,rightX(),350,rightWidth(),28,regular,SAND,Layout.Alignment.ALIGN_CENTER);
-            drawClock(canvas,rightX()+rightWidth()/2);drawWeather(canvas,rightX()+rightWidth()/2);drawNextPrayer(canvas);
-            if(!"none".equals(data.panel))drawTable(canvas);
-            if(options.saverMatches&&options.showsMatches())football.draw(canvas,rightX(),806,rightWidth(),126);
+            LocalDate d=now.toLocalDate(),shown=data.prayers==null?d:kw.urtv.shared.PrayerTableDay.select(d,now.getHour()*60+now.getMinute(),data.prayers[5]);
+            canvas.save();canvas.translate(80,90);simpleFace.draw(canvas,1760,900,options,palette,now,data.city,data.prayers,data.tableTimes(shown),shown,data.tomorrow());canvas.restore();
         }else{
             // Readable from across the room: enlarged side groups use the full height.
             canvas.save();canvas.translate(-24,-50);canvas.scale(1.06f,1.06f);

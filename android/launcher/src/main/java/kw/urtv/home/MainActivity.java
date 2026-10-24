@@ -175,6 +175,7 @@ public class MainActivity extends Activity {
         dockApps=loadDock();buildApps();
         if(prefs().getBoolean("wallpaper_reload",false)){wallIndex=-1;wallChangedAt=0;prefs().edit().putBoolean("wallpaper_reload",false).apply();}
         View last = lastFocusedId == View.NO_ID ? null : findViewById(lastFocusedId);
+        if (last == null && displayOptions.focused()) last=pills.get(0);
         if (last == null && !dockCards.isEmpty()) last = dockCards.get(0);
         if (last != null) last.requestFocus();
         // Catch installs/removals that happened while another app was in front.
@@ -209,14 +210,25 @@ public class MainActivity extends Activity {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         if(shouldOfferSetup(this)){startActivity(new Intent(this,SetupActivity.class));return;}
+        if(displayOptions.focused()){scroll.scrollTo(0,0);pills.get(0).requestFocus();return;}
         // Home pressed while already home: jump back to the first dock app.
         if (inputsPopup != null) inputsPopup.dismiss();
         if (!dockCards.isEmpty()) dockCards.get(0).requestFocus();
         scroll.smoothScrollTo(0, 0);
     }
 
+    @Override public boolean dispatchKeyEvent(android.view.KeyEvent event){
+        if(displayOptions!=null&&displayOptions.focused()&&event.getAction()==android.view.KeyEvent.ACTION_DOWN){
+            View focused=getCurrentFocus();
+            if(event.getKeyCode()==android.view.KeyEvent.KEYCODE_DPAD_UP&&dockCards.contains(focused)){scroll.scrollTo(0,0);pills.get(0).requestFocus();return true;}
+            if(event.getKeyCode()==android.view.KeyEvent.KEYCODE_DPAD_DOWN&&pills.contains(focused)&&!dockCards.isEmpty()){scroll.scrollTo(0,hero.getHeight());dockCards.get(0).requestFocus();return true;}
+        }
+        return super.dispatchKeyEvent(event);
+    }
     @Override
     public void onBackPressed() {
+        if(displayOptions.focused()){scroll.scrollTo(0,0);pills.get(0).requestFocus();return;}
+
         // Home has nowhere to go back to; Back from the grid returns to the dock.
         if (scroll.getScrollY() > 0 && !dockCards.isEmpty()) dockCards.get(0).requestFocus();
     }
@@ -269,13 +281,14 @@ public class MainActivity extends Activity {
 
         hero.addView(buildHeader(), lp(-1, -2, Gravity.TOP, dp(40), dp(20), dp(40), 0));
         // One transparent surface for the table below the pills and weather below the native clock.
-        homeCard = new HomeCard(this, hero, lp(-1, getResources().getDisplayMetrics().heightPixels-dp(105), Gravity.LEFT | Gravity.TOP, dp(40), dp(displayOptions.focused()?56:80), dp(40), 0));
+        homeCard = new HomeCard(this, hero, lp(-1, getResources().getDisplayMetrics().heightPixels-dp(displayOptions.focused()?80:105), Gravity.LEFT | Gravity.TOP, dp(40), dp(displayOptions.focused()?56:80), dp(40), 0));
 
         LinearLayout bottom = new LinearLayout(this);
         bottom.setOrientation(LinearLayout.VERTICAL);
         bottom.setClipChildren(false);
         bottom.setClipToPadding(false);
-        hero.addView(bottom, lp(-1, -2, Gravity.BOTTOM, dp(40), 0, dp(40), dp(20)));
+        if(displayOptions.focused())content.addView(bottom,llp(-1,-2,dp(40),0,dp(40),dp(20)));
+        else hero.addView(bottom, lp(-1, -2, Gravity.BOTTOM, dp(40), 0, dp(40), dp(20)));
 
         title = text(34, "sans-serif-light", Color.WHITE);
         title.setShadowLayer(dp(18), 0, 0, 0x66000000);
@@ -338,6 +351,7 @@ public class MainActivity extends Activity {
         left.setGravity(Gravity.CENTER_HORIZONTAL);
         for (TextView t : new TextView[]{greeting, date}) t.setGravity(Gravity.CENTER);
         FrameLayout.LayoutParams clockLayout=new FrameLayout.LayoutParams(displayOptions.focused()?(getResources().getDisplayMetrics().widthPixels-dp(104))/2:dp(280),-2,Gravity.RIGHT|Gravity.TOP);clockLayout.topMargin=dp(displayOptions.focused()?44:68);header.addView(left,clockLayout);
+        if(displayOptions.focused())left.setVisibility(View.GONE);
         left.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->{if(homeCard!=null)homeCard.alignBelowClock(b+dp(20));});
 
         LinearLayout right = new LinearLayout(this);
@@ -355,8 +369,8 @@ public class MainActivity extends Activity {
         TextView reminder=pill("التذكير",R.drawable.ic_screensaver);reminder.setOnClickListener(v->launch(new Intent().setClassName(SAVER_PKG,"kw.urtv.screensaver.ReminderActivity")));
         TextView updates=pill("التحديث",R.drawable.ic_update);updates.setOnClickListener(v->launch(new Intent(this,UpdateActivity.class)));
         TextView football=pill("المباريات",R.drawable.ic_apps);football.setOnClickListener(v->launch(new Intent(this,FootballActivity.class)));
-        for (TextView p : isInstalled(SAVER_PKG) ? new TextView[]{settings, inputs}
-                                                  : new TextView[]{settings, inputs}) {
+        TextView profiles=pill("المستخدمون",R.drawable.ic_person);profiles.setOnClickListener(v->launch(new Intent(this,SystemProfilesActivity.class)));
+        for (TextView p : new TextView[]{settings, inputs, profiles}) {
             right.addView(p, llp(-2, dp(30), dp(10), 0, 0, 0));
             pills.add(p);
         }
@@ -538,7 +552,7 @@ public class MainActivity extends Activity {
                 title.animate().alpha(1f).setDuration(lite?0:200).start();
                 animateGlow(app.color);
                 fadeGlow(1f);
-                scroll.smoothScrollTo(0, 0);
+                scroll.smoothScrollTo(0, displayOptions.focused()?hero.getHeight():0);
             } else {
                 fadeGlow(0.35f);
                 title.animate().alpha(0f).setDuration(lite?0:200).start();

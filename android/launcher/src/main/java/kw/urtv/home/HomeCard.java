@@ -75,6 +75,7 @@ final class HomeCard {
 
     // Home: timetable left; clock, weather, next prayer and matches right.
     private final LinearLayout rightStack;
+    private View simpleView;private kw.urtv.shared.SimplePrayerFace simpleFace;
     private final kw.urtv.shared.WeatherSymbol.SymbolView weatherSymbol;
     HomeCard(Activity activity, ViewGroup parent, FrameLayout.LayoutParams params) {
         this.activity=activity;calendar=new kw.urtv.shared.CalendarData(activity);cache=activity.getSharedPreferences("native_home_data",0);
@@ -121,15 +122,22 @@ final class HomeCard {
         LinearLayout.LayoutParams clockParams=new LinearLayout.LayoutParams(-1,-2);clockParams.topMargin=dp(10);rightStack.addView(clocks,clockParams);
         football=new kw.urtv.shared.FootballBoard.Surface(activity);
         LinearLayout.LayoutParams fp=new LinearLayout.LayoutParams(-1,dp(54));fp.topMargin=dp(12);rightStack.addView(football,fp);
+        if(options.focused()){
+            simpleFace=new kw.urtv.shared.SimplePrayerFace(activity);
+            simpleView=new View(activity){@Override protected void onDraw(android.graphics.Canvas c){ZonedDateTime n=ZonedDateTime.now(zone);LocalDate d=n.toLocalDate(),shown=prayers==null?d:kw.urtv.shared.PrayerTableDay.select(d,n.getHour()*60+n.getMinute(),prayers[5]);simpleFace.draw(c,getWidth(),getHeight(),options,palette,n,city,prayers,shown.equals(d)?prayers:schedule(shown).times,shown,prayers==null?null:schedule(d.plusDays(1)).times);}};
+            surface.addView(simpleView,new FrameLayout.LayoutParams(-1,-1));
+        }
         table.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->surface.post(this::fitHero));
         rightStack.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->surface.post(this::fitHero));
     }
     void alignBelowClock(int clockBottom){
+        if(options.focused())return;
         FrameLayout.LayoutParams p=(FrameLayout.LayoutParams)rightStack.getLayoutParams();
         p.topMargin=Math.max(dp(options.focused()?92:116),clockBottom-dp(options.focused()?56:80)+dp(10));rightStack.setLayoutParams(p);
 
     }
     private void fitHero(){
+        if(options.focused())return;
         // Large reading modes may scroll slightly; never cover prayer/football content with the app dock.
         int base=dp(options.focused()?56:80);
         int bottom=Math.max(table.getBottom(),rightStack.getBottom());
@@ -244,6 +252,8 @@ final class HomeCard {
         nextTimeTiles.setDigitScale(.68f*options.nextScale());nextTiles.setDigitScale(.68f*options.nextScale());
     }
     private void render() {
+        if(options.focused()&&simpleView!=null){table.setVisibility(View.GONE);rightStack.setVisibility(View.GONE);simpleView.invalidate();simpleView.setContentDescription("الساعة ومواقيت الصلاة · "+city+" · "+options.time(ZonedDateTime.now(zone).getHour()*60+ZonedDateTime.now(zone).getMinute())+(prayers==null?"":java.util.stream.IntStream.range(0,6).mapToObj(i->new String[]{"الفجر","الشروق","الظهر","العصر","المغرب","العشاء"}[i]+" "+options.time(prayers[i])).collect(java.util.stream.Collectors.joining(" · "))));return;}
+
         table.setVisibility("none".equals(panel)||("forecast".equals(panel)?!options.showsWeather():!options.prayersEnabled)?View.GONE:View.VISIBLE);weather.setVisibility(options.showsWeather()?View.VISIBLE:View.GONE);clocks.setVisibility(options.prayersEnabled?View.VISIBLE:View.GONE);
         ZonedDateTime now=ZonedDateTime.now(zone);int minute=now.getHour()*60+now.getMinute();
         LocalDate today=now.toLocalDate(),shown=prayers==null?today:kw.urtv.shared.PrayerTableDay.select(today,minute,prayers[5]);

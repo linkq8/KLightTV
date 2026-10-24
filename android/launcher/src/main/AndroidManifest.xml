@@ -31,6 +31,7 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.HOME" />
         </intent>
+        <package android:name="com.google.android.apps.tv.launcherx" />
         <package android:name="com.tcl.tv" />
         <package android:name="com.smartdevice.livetv" />
         <package android:name="com.android.tv" />
@@ -109,6 +110,7 @@
 <activity android:name="kw.urtv.shared.PerformanceActivity" android:exported="false" android:screenOrientation="landscape" />
 <activity android:name=".UpdateActivity" android:exported="true" android:screenOrientation="landscape"/>
 <provider android:name=".UpdateFiles" android:authorities="kw.urtv.home.updates" android:exported="false" android:grantUriPermissions="true"/>
+<activity android:name=".SystemProfilesActivity" android:exported="false" android:screenOrientation="landscape"/>
 <activity android:name=".SetupActivity" android:exported="false" android:screenOrientation="landscape"/>
 <activity android:name=".CustomizationActivity" android:exported="false" android:screenOrientation="landscape"/>
 <activity android:name=".RemoteSettingsActivity" android:exported="false" android:screenOrientation="landscape"/>
