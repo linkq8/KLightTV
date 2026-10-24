@@ -12,8 +12,8 @@ android {
         targetSdk 34
         // CI passes its run number so every build installs over the previous one; 3.x since the new signing key,
         // the same number as the home app and as the release (v3.N)
-        versionCode((System.getenv('ANDROID_VERSION_CODE') ?: '15') as int)
-        versionName "1.10.4"
+        versionCode((System.getenv('ANDROID_VERSION_CODE') ?: '20') as int)
+        versionName "2.0.0"
     }
 
     signingConfigs {
@@ -51,8 +51,12 @@ android {
 // Native display assets: no WebView, HTML or browser fonts in the APK.
 def copyRuntime = tasks.register('copyRuntime', Sync) {
     from('../launcher/src/main/assets/fonts') { include '*.otf'; into 'fonts' }
-    from('../../assets/calendar') { include '*.json'; into 'calendar' }
     from('../../assets/backgrounds') { include '*.jpg'; into 'backgrounds' }
+    from('../../assets/calendar') { include '*.json'; into 'calendar' }
     into "$buildDir/generated/assets"
 }
 preBuild.dependsOn copyRuntime
+
+dependencies { implementation "com.batoulapps.adhan:adhan:1.2.1" }
+
+android.sourceSets.main.assets.srcDir("../shared/src/main/assets")

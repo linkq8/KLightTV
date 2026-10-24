@@ -1,0 +1,164 @@
+{
+  "events": [
+    {
+      "id": "401878765",
+      "date": "2026-10-25T14:00Z",
+      "name": "Brighton & Hove Albion at Liverpool",
+      "competitions": [
+        {
+          "competitors": [
+            {
+              "homeAway": "home",
+              "team": {
+                "id": "364",
+                "displayName": "Liverpool"
+              }
+            },
+            {
+              "homeAway": "away",
+              "team": {
+                "id": "331",
+                "displayName": "Brighton & Hove Albion"
+              }
+            }
+          ],
+          "status": {
+            "clock": 0.0,
+            "addedClock": 0.0,
+            "displayClock": "0'",
+            "period": 0,
+            "type": {
+              "id": "1",
+              "name": "STATUS_SCHEDULED",
+              "state": "pre",
+              "completed": false,
+              "description": "Scheduled",
+              "detail": "Sun, October 25th at 10:00 AM EDT",
+              "shortDetail": "10/25 - 10:00 AM EDT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "401921842",
+      "date": "2026-10-28T20:00Z",
+      "name": "Chelsea at Liverpool",
+      "competitions": [
+        {
+          "competitors": [
+            {
+              "homeAway": "home",
+              "team": {
+                "id": "364",
+                "displayName": "Liverpool"
+              }
+            },
+            {
+              "homeAway": "away",
+              "team": {
+                "id": "363",
+                "displayName": "Chelsea"
+              }
+            }
+          ],
+          "status": {
+            "clock": 0.0,
+            "addedClock": 0.0,
+            "displayClock": "0'",
+            "period": 0,
+            "type": {
+              "id": "1",
+              "name": "STATUS_SCHEDULED",
+              "state": "pre",
+              "completed": false,
+              "description": "Scheduled",
+              "detail": "Wed, October 28th at 4:00 PM EDT",
+              "shortDetail": "10/28 - 4:00 PM EDT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "401879246",
+      "date": "2026-11-01T16:30Z",
+      "name": "Arsenal at Liverpool",
+      "competitions": [
+        {
+          "competitors": [
+            {
+              "homeAway": "home",
+              "team": {
+                "id": "364",
+                "displayName": "Liverpool"
+              }
+            },
+            {
+              "homeAway": "away",
+              "team": {
+                "id": "359",
+                "displayName": "Arsenal"
+              }
+            }
+          ],
+          "status": {
+            "clock": 0.0,
+            "addedClock": 0.0,
+            "displayClock": "0'",
+            "period": 0,
+            "type": {
+              "id": "1",
+              "name": "STATUS_SCHEDULED",
+              "state": "pre",
+              "completed": false,
+              "description": "Scheduled",
+              "detail": "Sun, November 1st at 11:30 AM EST",
+              "shortDetail": "11/1 - 11:30 AM EST"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "401915382",
+      "date": "2026-11-04T17:45Z",
+      "name": "Liverpool at Fenerbahce",
+      "competitions": [
+        {
+          "competitors": [
+            {
+              "homeAway": "home",
+              "team": {
+                "id": "436",
+                "displayName": "Fenerbahce"
+              }
+            },
+            {
+              "homeAway": "away",
+              "team": {
+                "id": "364",
+                "displayName": "Liverpool"
+              }
+            }
+          ],
+          "status": {
+            "clock": 0.0,
+            "addedClock": 0.0,
+            "displayClock": "0'",
+            "period": 0,
+            "type": {
+              "id": "1",
+              "name": "STATUS_SCHEDULED",
+              "state": "pre",
+              "completed": false,
+              "description": "Scheduled",
+              "detail": "Wed, November 4th at 12:45 PM EST",
+              "shortDetail": "11/4 - 12:45 PM EST"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

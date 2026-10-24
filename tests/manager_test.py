@@ -12,12 +12,32 @@ class Fake(mod.Manager):
   if a[:3]==('cmd','appops','set'):self.ops[a[3]]=a[5];return ''
   if a[0]=='pm':self.states[a[-1]]={'enable':1,'default-state':0,'disable-user':3,'disable':2,'disable-until-used':4}[a[1]];return 'new state'
   raise AssertionError(a)
+REAL_GATE=mod.safety.gate
 class Tests(unittest.TestCase):
+ def setUp(self):
+  from unittest.mock import patch
+  # Existing execution/rollback unit tests isolate the independently tested policy boundary.
+  self.gate=patch.object(mod.safety,"gate",return_value=pathlib.Path("test-policy-record")).start();patch.object(mod.safety,"finish").start();self.addCleanup(patch.stopall)
+ def test_missing_policy_prevents_all_mutations(self):
+  from unittest.mock import patch
+  with tempfile.TemporaryDirectory() as d,patch.object(mod.safety,"gate",side_effect=REAL_GATE):
+   m=Fake(d)
+   with self.assertRaises(ValueError):m.execute([dict(package="com.google.android.play.games",action="disable")],"rev")
+   self.assertFalse(any(c[0]=="pm" or c[:3]==("cmd","appops","set") for c in m.calls))
+
  def test_protected_and_injection(self):
   with tempfile.TemporaryDirectory() as d:
    m=Fake(d)
    for p in ['android','com.google.android.katniss','com.x;reboot','com.unknown']:
     with self.assertRaises(ValueError):m.execute([dict(package=p,action='disable')],'rev')
+   self.assertEqual(m.calls,[])
+ def test_input_packages_are_protected_even_with_stale_inventory(self):
+  with tempfile.TemporaryDirectory() as d:
+   m=Fake(d)
+   for p in ['com.smartdevice.livetv','com.mediatek.tvinput','com.mediatek.tvinputservice.arbitratorservice','com.mediatek.hotkey.dispatcher','com.mediatek.tv.agent','com.android.providers.tv']:
+    m.items[p]=dict(protected=False,system=True)
+    for action in ['disable','background','uninstall']:
+     with self.assertRaises(ValueError):m.execute([dict(package=p,action=action)],'rev')
    self.assertEqual(m.calls,[])
  def test_roundtrip_preserves_default_and_disabled(self):
   with tempfile.TemporaryDirectory() as d:

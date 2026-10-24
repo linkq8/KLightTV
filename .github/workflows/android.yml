@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   apk:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -31,6 +31,10 @@ jobs:
           gradle-version: '8.11.1'
       - name: Build development APKs
         run: gradle -p android assembleDebug --no-daemon
+      - name: Prayer calculation and quick setup regression
+        run: |
+          curl --fail --silent --show-error --location https://repo.maven.apache.org/maven2/org/json/json/20240303/json-20240303.jar -o /tmp/klight-test-json.jar
+          python3 tests/prayer_regression_test.py
       - name: Name artifacts
         run: |
           cp android/app/build/outputs/apk/debug/app-debug.apk KLightTV-screensaver-development-android-tv.apk

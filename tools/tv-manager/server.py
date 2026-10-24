@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 """Local, on-demand ADB checklist. No shell interpolation; core system packages are protected."""
+import sys
+sys.path.insert(0,str(__import__("pathlib").Path(__file__).resolve().parents[1]))
+import device_safety as safety
 import argparse,json,pathlib,re,secrets,subprocess,threading,time,urllib.parse,webbrowser
 from http.server import ThreadingHTTPServer,BaseHTTPRequestHandler
 ROOT=pathlib.Path(__file__).resolve().parent
@@ -18,7 +21,6 @@ OPTIONAL={
  'com.smartdevice.dtv.icast':('CastPlay','بث مكرر؛ Chromecast مستقل','optional'),
  'com.netflix.ninja':('Netflix','تطبيق بث','streaming'),
  'com.amazon.amazonvideo.livingroom':('Prime Video','تطبيق بث','streaming'),
- 'com.smartdevice.livetv':('Live TV','قنوات الموالف','optional'),
  'com.Smartdevice.emanual':('E-Manual','دليل التلفزيون','optional'),
  'com.facebook.katana':('Facebook Watch','فيديو Facebook','optional'),
  'com.security.SwaiotTV':('Swaiot Home','منزل ذكي من الشركة','optional'),
@@ -36,11 +38,12 @@ OPTIONAL={
  'tv.twitch.android.app':('Twitch','تطبيق بث','streaming'),
  'com.FDGEntertainment.redball4.gp':('Red Ball 4','لعبة','optional'),
 }
-PROTECTED={'com.google.android.katniss','com.mediatek.partner.netflix','com.google.android.apps.mediashell','com.google.android.gms','com.google.android.gsf','com.android.vending','kw.urtv.home','kw.urtv.screensaver','com.google.android.packageinstaller','com.android.packageinstaller','com.android.permissioncontroller','com.google.android.permissioncontroller','com.android.systemui','android','com.android.bluetooth','com.android.tv.settings','com.google.android.tv.remote.service','com.liskovsoft.leankeyboard','com.google.android.inputmethod.latin'}
-LABELS={'com.google.android.katniss':'الميكروفون والبحث الصوتي','com.mediatek.partner.netflix':'MediaTek · خدمة Bluetooth مشتركة','com.google.android.apps.mediashell':'Chromecast','kw.urtv.home':'KLightTV · الرئيسية','kw.urtv.screensaver':'KLightTV · شاشة التوقف','com.android.vending':'متجر Google Play','com.google.android.gms':'خدمات Google Play'}
+PROTECTED={'com.smartdevice.livetv','com.mediatek.tvinput','com.mediatek.tvinputservice.arbitratorservice','com.mediatek.hotkey.dispatcher','com.mediatek.tv.agent','com.android.providers.tv','com.google.android.katniss','com.mediatek.partner.netflix','com.google.android.apps.mediashell','com.google.android.gms','com.google.android.gsf','com.android.vending','kw.urtv.home','kw.urtv.screensaver','com.google.android.packageinstaller','com.android.packageinstaller','com.android.permissioncontroller','com.google.android.permissioncontroller','com.android.systemui','android','com.android.bluetooth','com.android.tv.settings','com.google.android.tv.remote.service','com.liskovsoft.leankeyboard','com.google.android.inputmethod.latin'}
+LABELS={'com.smartdevice.livetv':'Skyworth · واجهة التلفزيون والمصادر (HDMI)','com.mediatek.tvinput':'MediaTek · مداخل التلفزيون','com.mediatek.tvinputservice.arbitratorservice':'MediaTek · إدارة المداخل','com.google.android.katniss':'الميكروفون والبحث الصوتي','com.mediatek.partner.netflix':'MediaTek · خدمة Bluetooth مشتركة','com.google.android.apps.mediashell':'Chromecast','kw.urtv.home':'KLightTV · الرئيسية','kw.urtv.screensaver':'KLightTV · شاشة التوقف','com.android.vending':'متجر Google Play','com.google.android.gms':'خدمات Google Play'}
 PKG=re.compile(r'[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)+\Z')
 class Manager:
- def __init__(self,adb,serial,snapshot=None,history=None):
+ def __init__(self,adb,serial,snapshot=None,history=None,audit=None,review=None):
+  self.audit=audit;self.review=review;
   self.adb=adb;self.serial=serial;self.snapshot=snapshot;self.history=pathlib.Path(history or pathlib.Path.home()/'.urtv-manager');self.lock=threading.Lock();self.items={};self.revision='';self.device='';self.identity={}
  def run(self,*args):
   if self.snapshot:raise ValueError('وضع المعاينة لا يغيّر أي جهاز')
@@ -60,20 +63,20 @@ class Manager:
    packages=[p[8:] for p in self.sh('pm','list','packages','--user','0').splitlines() if p.startswith('package:')];disabled={p[8:] for p in self.sh('pm','list','packages','-d','--user','0').splitlines()};third={p[8:] for p in self.sh('pm','list','packages','-3','--user','0').splitlines()}
   out=[]
   for p in sorted(set(packages)):
-   info=OPTIONAL.get(p);protected=p in PROTECTED or (not info and p not in third)
+   info=OPTIONAL.get(p);protected=safety.protected(p) or p in PROTECTED or (not info and p not in third)
    name,description,kind=info or (LABELS.get(p,p),'خدمة نظام غير مصنفة؛ محمية من التغيير' if protected else 'تطبيق مستخدم','protected' if protected else 'user')
    out.append(dict(package=p,name=name,description=description,kind=kind,enabled=p not in disabled,protected=protected,system=p not in third))
   out.sort(key=lambda x:({'streaming':0,'optional':1,'privacy':2,'user':3,'protected':4}.get(x['kind'],4),x['name']))
   self.items={x['package']:x for x in out};self.revision=secrets.token_hex(16)
-  return dict(device=self.device,serial=self.serial,preview=bool(self.snapshot),apps=out,revision=self.revision)
+  return dict(device=self.device,serial=self.serial,preview=bool(self.snapshot),apps=out,revision=self.revision,policy_ready=bool(self.audit and self.review),policy_note='يلزم فحص حديث وبحث موثق عن الموديل والنظام، ثم تحقق وظيفي بعد كل دفعة. الأزرار والقنوات والمداخل محمية.')
  def validate(self,changes,revision):
   if self.snapshot:raise ValueError('المعاينة فقط؛ اتصل بالجهاز للتنفيذ')
   if revision!=self.revision:raise ValueError('تغيرت القائمة؛ أعد الفحص قبل التنفيذ')
-  if not isinstance(changes,list) or not 1<=len(changes)<=60:raise ValueError('اختر من ١ إلى ٦٠ تطبيقاً')
+  if not isinstance(changes,list) or not 1<=len(changes)<=3:raise ValueError('اختر من ١ إلى ٣ تطبيقات في كل دفعة')
   seen=set()
   for c in changes:
    p=c.get('package','');action=c.get('action');item=self.items.get(p)
-   if not PKG.fullmatch(p) or p in seen or not item or item['protected']:raise ValueError('حزمة محمية أو غير معروفة')
+   if not PKG.fullmatch(p) or p in seen or not item or p in PROTECTED or safety.protected(p) or item['protected']:raise ValueError('حزمة محمية أو غير معروفة')
    seen.add(p)
    if action not in ['enable','disable','background','uninstall']:raise ValueError('عملية غير معروفة')
    if action=='uninstall' and (p not in OPTIONAL or not item['system']):raise ValueError('الإزالة هنا لتطبيقات النظام الاختيارية فقط؛ تطبيق المستخدم يُزال من تأكيد Android على التلفزيون')
@@ -89,7 +92,8 @@ class Manager:
     op=self.sh('cmd','appops','get',c['package'],'RUN_ANY_IN_BACKGROUND')
     mode=re.search(r'RUN_ANY_IN_BACKGROUND:\s*(allow|ignore|deny|default|foreground)',op)
     states.append(dict(package=c['package'],action=c['action'],enabled=state,appop=mode[1] if mode else 'default'))
-   record=dict(device=self.identity,time=time.time(),states=states,results=[],restored=False);self.history.mkdir(parents=True,exist_ok=True);path=self.history/(str(time.time_ns())+'.json');path.write_text(json.dumps(record,ensure_ascii=False,indent=2));self.revision=''
+   policy_record=safety.gate(self.sh,self.serial,self.audit,self.review,[dict(kind='package',**c) for c in changes])
+   record=dict(device=self.identity,policy_record=str(policy_record),time=time.time(),states=states,results=[],restored=False);self.history.mkdir(parents=True,exist_ok=True);path=self.history/(str(time.time_ns())+'.json');path.write_text(json.dumps(record,ensure_ascii=False,indent=2));self.revision=''
    for s in states:
     p=s['package'];a=s['action']
     try:
@@ -104,9 +108,11 @@ class Manager:
       if actual!=(1 if a=='enable' else 3):raise ValueError('لم يثبت تغيير الحالة')
      if a=='background' and 'ignore' not in self.sh('cmd','appops','get',p,'RUN_ANY_IN_BACKGROUND'):raise ValueError('لم يثبت تقييد الخلفية')
      record['results'].append(dict(package=p,ok=True,reply=reply))
-    except Exception as e:record['results'].append(dict(package=p,ok=False,error=str(e)))
+    except Exception as e:
+     record['results'].append(dict(package=p,ok=False,error=str(e)));path.write_text(json.dumps(record,ensure_ascii=False,indent=2));break
     path.write_text(json.dumps(record,ensure_ascii=False,indent=2))
-   return dict(results=record['results'],backup=path.name)
+   safety.finish(policy_record,record['results'])
+   return dict(results=record['results'],backup=path.name,verification=str(policy_record))
  def restore(self):
   with self.lock:
    if self.snapshot:raise ValueError('معاينة فقط')
@@ -116,6 +122,11 @@ class Manager:
     r=json.loads(path.read_text())
     if r['device'].get('serial')==self.serial and r['device'].get('fingerprint')==fingerprint and not r.get('restored'):record=r;break
    if record is None:raise ValueError('لا توجد عملية قابلة للاستعادة لهذا الجهاز')
+   # Validate the whole recovery set before the first write; never restore an unsafe historical list piecemeal.
+   for saved in record['states']:
+    pkg=saved.get('package','')
+    if not PKG.fullmatch(pkg) or pkg in PROTECTED or safety.protected(pkg) or saved.get('action') not in ('enable','disable','background','uninstall') or saved.get('enabled') not in (0,1,2,3,4) or saved.get('appop') not in ('allow','ignore','deny','default','foreground'):raise ValueError('سجل استعادة غير صالح أو يمس خدمة أساسية')
+   policy_record=safety.gate(self.sh,self.serial,self.audit,self.review,[dict(kind='restore-packages',backup_sha256=safety.digest(record))],recovery=True)
    results=[]
    # Restores all snapshotted entries, also covers a crash after mutation but before result logging.
    for s in reversed(record['states']):
@@ -129,12 +140,13 @@ class Manager:
      self.sh('pm',command,'--user','0',p);self.sh('cmd','appops','set',p,'RUN_ANY_IN_BACKGROUND',s['appop'])
      if self.enabled(p)[0]!=s['enabled']:raise ValueError('تعذر التحقق من الاستعادة')
      results.append(dict(package=p,ok=True))
-    except Exception as e:results.append(dict(package=p,ok=False,error=str(e)))
-   record['restored']=all(x['ok'] for x in results);record['restore_results']=results;path.write_text(json.dumps(record,ensure_ascii=False,indent=2));self.revision='';return dict(results=results)
+    except Exception as e:
+     results.append(dict(package=p,ok=False,error=str(e)));break
+   record['restored']=all(x['ok'] for x in results);record['restore_results']=results;path.write_text(json.dumps(record,ensure_ascii=False,indent=2));self.revision='';safety.finish(policy_record,results);return dict(results=results,verification=str(policy_record))
 
 def main():
- p=argparse.ArgumentParser();p.add_argument('--serial',required=True);p.add_argument('--adb',default='adb');p.add_argument('--snapshot');p.add_argument('--port',type=int,default=0);p.add_argument('--no-browser',action='store_true');a=p.parse_args()
- m=Manager(a.adb,a.serial,a.snapshot);token=secrets.token_urlsafe(32)
+ p=argparse.ArgumentParser();p.add_argument('--serial',required=True);p.add_argument('--adb',default='adb');p.add_argument('--snapshot');p.add_argument('--port',type=int,default=0);p.add_argument('--no-browser',action='store_true');p.add_argument('--audit');p.add_argument('--review');a=p.parse_args()
+ m=Manager(a.adb,a.serial,a.snapshot,audit=a.audit,review=a.review);token=secrets.token_urlsafe(32)
  class Handler(BaseHTTPRequestHandler):
   def log_message(self,*args):pass
   def send(self,status,body,kind='application/json'):

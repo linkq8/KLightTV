@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+echo "Legacy device changes are blocked. Use tools/device_safety.py, then reviewed tools/install.py or tools/tv-manager/server.py. No device was changed." >&2
+exit 2
 # Undo everything: re-enable every package in the given debloat lists, bring back the stock launcher, Google
 # TV's setup app and the stock home's helpers (lists/home-replaced.txt), and make the stock launcher home again.
 # Usage: optimize/restore.sh [debloat list ...]        (no list: only the home screen)

@@ -1,38 +1,23 @@
 package kw.urtv.home;
-import android.app.AlertDialog;
-import android.content.*;
-import android.content.pm.*;
-import android.net.Uri;
-import android.os.Bundle;
-import android.provider.Settings;
-import android.view.*;
-import android.widget.*;
-import java.util.*;
-import kw.urtv.shared.TvPage;
-
-/** Visibility choices are explicit: hiding does not disable the package or stop background work. */
+import android.app.*;import android.content.*;import android.content.pm.*;import android.net.Uri;import android.os.*;import android.provider.Settings;import android.view.*;import android.widget.*;import java.io.File;import java.util.*;import java.util.concurrent.*;import kw.urtv.shared.TvPage;
+/** An on-demand package inventory. Android owns uninstall, disable and storage consent. */
 public class ManageAppsActivity extends TvPage {
-    private final Set<String> hidden=new HashSet<>();private final List<ResolveInfo> apps=new ArrayList<>();
-    @Override public void onCreate(Bundle b){super.onCreate(b);hidden.addAll(Dock.prefs(this).getStringSet("hidden",Collections.emptySet()));apps.addAll(Dock.catalogue(this,true));apps.sort((a,c)->a.loadLabel(getPackageManager()).toString().compareTo(c.loadLabel(getPackageManager()).toString()));render();}
-    private void render(){title("تطبيقاتي", "حدد ما يظهر على الرئيسية. إخفاء التطبيق لا يوقف عمله في الخلفية.");
-        LinearLayout bar=new LinearLayout(this);bar.setLayoutDirection(1);list.addView(bar);
-        String[] names={"حفظ الاختيارات","تراجع عن آخر حفظ","إدارة تطبيقات النظام","رجوع"};Runnable[] actions={this::save,this::undo,()->new AlertDialog.Builder(this).setTitle("التعطيل وتقييد الخلفية").setMessage("تطبيقات مثل Play Games وPlay Movies يمكن إدارتها بأداة الكمبيوتر المرفقة عبر ADB. تعرض الأداة التطبيقات وخطة التغييرات وخيار الاستعادة. هذه الشاشة تتحكم بظهور التطبيقات فقط؛ لن ندّعي تعطيل تطبيق لا نملك صلاحية تعطيله.").setPositiveButton("حسنًا",null).show(),this::finish};
-        for(int i=0;i<names.length;i++){LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,-2,1);p.setMargins(dp(4),0,dp(4),dp(16));bar.addView(button(names[i],actions[i]),p);}
-        for(ResolveInfo ri:apps){String pkg=ri.activityInfo.packageName;LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);row.setPadding(dp(10),dp(4),dp(10),dp(4));row.setLayoutDirection(1);
-            ImageView icon=new ImageView(this);icon.setImageDrawable(ri.loadIcon(getPackageManager()));row.addView(icon,new LinearLayout.LayoutParams(dp(38),dp(38)));
-            CheckBox check=new CheckBox(this);check.setText(ri.loadLabel(getPackageManager()));check.setTextSize(19);check.setTextColor(0xFFF6EFE0);check.setTypeface(bold);check.setPadding(dp(14),dp(6),dp(14),dp(6));check.setButtonTintList(android.content.res.ColorStateList.valueOf(0xFFDCB86F));check.setChecked(!hidden.contains(pkg));check.setOnCheckedChangeListener((b,on)->{if(on)hidden.remove(pkg);else hidden.add(pkg);});
-            android.graphics.drawable.GradientDrawable bg=new android.graphics.drawable.GradientDrawable();bg.setCornerRadius(dp(8));bg.setColor(0xFF091610);check.setBackground(bg);check.setOnFocusChangeListener((v,f)->bg.setColor(f?0xFF294D37:0xFF091610));row.addView(check,new LinearLayout.LayoutParams(0,dp(55),1));
-            TextView manage=button("خيارات",()->options(pkg,ri.loadLabel(getPackageManager()).toString()));row.addView(manage,new LinearLayout.LayoutParams(dp(96),-2));list.addView(row);
-            View line=new View(this);line.setBackgroundColor(0xFF243C2D);list.addView(line,new LinearLayout.LayoutParams(-1,dp(1)));
-        }
-        if(apps.isEmpty())note("لا توجد تطبيقات متاحة للعرض.");bar.getChildAt(0).requestFocus();
-    }
-    private void save(){android.content.SharedPreferences p=Dock.prefs(this);p.edit().putStringSet("previous_hidden",new HashSet<>(p.getStringSet("hidden",Collections.emptySet()))).putStringSet("hidden",new HashSet<>(hidden)).apply();sendBroadcast(new Intent(Dock.CHANGED).setPackage(getPackageName()));Toast.makeText(this,"حُفظت قائمة الظهور",0).show();}
-    private void undo(){android.content.SharedPreferences p=Dock.prefs(this);if(!p.contains("previous_hidden")){Toast.makeText(this,"لا يوجد تغيير سابق",0).show();return;}hidden.clear();hidden.addAll(p.getStringSet("previous_hidden",Collections.emptySet()));p.edit().putStringSet("hidden",new HashSet<>(hidden)).remove("previous_hidden").apply();sendBroadcast(new Intent(Dock.CHANGED).setPackage(getPackageName()));render();}
-    private void options(String pkg,String label){boolean system;try{ApplicationInfo a=getPackageManager().getApplicationInfo(pkg,0);system=(a.flags&ApplicationInfo.FLAG_SYSTEM)!=0;}catch(Exception e){return;}
-        final boolean builtin=system;new AlertDialog.Builder(this).setTitle(label).setItems(new String[]{"معلومات التطبيق",builtin?"إدارة التعطيل عبر الكمبيوتر":"إلغاء التثبيت (Uninstall)"},(d,i)->{
-            if(i==0)startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:"+pkg)));
-            else if(builtin)new AlertDialog.Builder(this).setTitle("تطبيق مدمج").setMessage("استخدم أداة إدارة التلفزيون على الكمبيوتر لتعطيله بصورة قابلة للاسترجاع. الإخفاء هنا لا يعطله.").setPositiveButton("حسنًا",null).show();
-            else startActivity(new Intent(Intent.ACTION_UNINSTALL_PACKAGE,Uri.parse("package:"+pkg)));
-        }).show();}
+ private final ExecutorService worker=Executors.newSingleThreadExecutor();private final List<PackageInfo> packages=new ArrayList<>();private final Set<String> hidden=new HashSet<>(),launchable=new HashSet<>();private boolean dead,loading;private int filter=0,page=0;private final String[] filters={"تطبيقاتي","تطبيقات النظام","المخفية"};
+ @Override public void onCreate(Bundle b){super.onCreate(b);hidden.addAll(Dock.prefs(this).getStringSet("hidden",Collections.emptySet()));scan();}
+ private void scan(){if(loading)return;loading=true;title("مركز التطبيقات","جارٍ قراءة التطبيقات المثبتة…");worker.execute(()->{List<PackageInfo> found=getPackageManager().getInstalledPackages(PackageManager.MATCH_DISABLED_COMPONENTS);found.sort((a,b)->getPackageManager().getApplicationLabel(a.applicationInfo).toString().compareToIgnoreCase(getPackageManager().getApplicationLabel(b.applicationInfo).toString()));Set<String> launches=new HashSet<>();for(ResolveInfo ri:Dock.catalogue(this,true))launches.add(ri.activityInfo.packageName);runOnUiThread(()->{if(dead)return;packages.clear();packages.addAll(found);launchable.clear();launchable.addAll(launches);loading=false;render();});});}
+ private void render(){title("مركز التطبيقات","قائمتك، مساحتك، واختياراتك");android.os.StatFs disk=new android.os.StatFs(getFilesDir().getPath());note("المساحة المتاحة: "+kw.urtv.shared.CalendarData.ar(String.format(java.util.Locale.ROOT,"%.1f",disk.getAvailableBytes()/1073741824d))+" جيجابايت · "+kw.urtv.shared.CalendarData.ar(String.valueOf(packages.size()))+" تطبيقًا مثبتًا");
+ LinearLayout toolbar=new LinearLayout(this);toolbar.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);list.addView(toolbar);for(int i=0;i<3;i++){final int f=i;TextView tab=button((filter==i?"✓  ":"")+filters[i],()->{filter=f;page=0;render();});toolbar.addView(tab,new LinearLayout.LayoutParams(0,-2,1));}
+ note("إظهار وإخفاء يغيّران الرئيسية فقط. الإيقاف والتعطيل ومسح البيانات تتم من معلومات التطبيق في Android.");
+ int count=0;for(PackageInfo info:packages){String pkg=info.packageName;boolean system=(info.applicationInfo.flags&ApplicationInfo.FLAG_SYSTEM)!=0;if(filter==0&&system&&!launchable.contains(pkg)||filter==1&&!system||filter==2&&!hidden.contains(pkg))continue;count++;if(count<=page*20||count>page*20+20)continue;
+ LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);row.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);row.setPadding(0,dp(9),0,dp(9));
+ TextView name=text(getPackageManager().getApplicationLabel(info.applicationInfo).toString(),19,0xFFF1F5FA);name.setTypeface(bold);
+ LinearLayout description=new LinearLayout(this);description.setOrientation(android.widget.LinearLayout.VERTICAL);description.addView(name);long size=new File(info.applicationInfo.sourceDir).length();if(info.applicationInfo.splitSourceDirs!=null)for(String f:info.applicationInfo.splitSourceDirs)size+=new File(f).length();description.addView(text((info.applicationInfo.enabled?"مفعّل":"معطّل")+" · "+(system?"مدمج":"مثبّت")+String.format(Locale.ROOT," · APK %.1f MB",size/1048576d),12,0xFFB9CADA));
+ row.addView(description,new LinearLayout.LayoutParams(0,-2,1));
+ if(launchable.contains(pkg)){CheckBox visible=new CheckBox(this);visible.setText("إظهار");visible.setTextColor(palette.ink);visible.setChecked(!hidden.contains(pkg));visible.setOnCheckedChangeListener((v,on)->{Set<String> previous=new HashSet<>(Dock.prefs(this).getStringSet("hidden",Collections.emptySet()));if(on)hidden.remove(pkg);else hidden.add(pkg);Dock.prefs(this).edit().putStringSet("previous_hidden",previous).putStringSet("hidden",new HashSet<>(hidden)).apply();sendBroadcast(new Intent(Dock.CHANGED).setPackage(getPackageName()));});row.addView(visible,new LinearLayout.LayoutParams(dp(100),-2));}
+ row.addView(button("إدارة",()->options(info)),new LinearLayout.LayoutParams(dp(105),-2));list.addView(row);View divider=new View(this);divider.setBackgroundColor(0xFF2B4055);list.addView(divider,new LinearLayout.LayoutParams(-1,dp(1)));}
+ if(count==0)note("لا توجد تطبيقات في هذه القائمة.");if(page>0)addButton("الصفحة السابقة",()->{page--;render();});if(count>(page+1)*20)addButton("المزيد من التطبيقات",()->{page++;render();});addButton("تحديث القائمة",()->{page=0;scan();});addButton("التراجع عن آخر إخفاء",()->{android.content.SharedPreferences prefs=Dock.prefs(this);if(prefs.contains("previous_hidden")){hidden.clear();hidden.addAll(prefs.getStringSet("previous_hidden",Collections.emptySet()));prefs.edit().putStringSet("hidden",new HashSet<>(hidden)).remove("previous_hidden").apply();sendBroadcast(new Intent(Dock.CHANGED).setPackage(getPackageName()));render();}});addButton("رجوع",this::finish);
+ }
+ private void options(PackageInfo p){String pkg=p.packageName;boolean sys=(p.applicationInfo.flags&ApplicationInfo.FLAG_SYSTEM)!=0;new AlertDialog.Builder(this).setTitle(getPackageManager().getApplicationLabel(p.applicationInfo)).setItems(new String[]{"فتح التطبيق","معلومات التطبيق · مساحة وإيقاف وتعطيل",sys?"صلاحيات إدارة التطبيقات المدمجة":"إلغاء التثبيت"},(d,n)->{try{if(n==0){Intent launch=getPackageManager().getLeanbackLaunchIntentForPackage(pkg);if(launch==null)launch=getPackageManager().getLaunchIntentForPackage(pkg);if(launch==null){Toast.makeText(this,"لا توجد واجهة لهذا التطبيق",android.widget.Toast.LENGTH_SHORT).show();return;}startActivity(launch);}else if(n==1)startActivityForResult(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:"+pkg)),2);else if(sys)new AlertDialog.Builder(this).setTitle("تطبيق نظام").setMessage("جرّب التعطيل من معلومات التطبيق. إذا منعته الشركة، استخدم مركز الإدارة على الكمبيوتر عبر ADB. لا يملك KLightTV صلاحية تعطيل تطبيقات النظام مباشرة، ولن يزيل خدمات التلفزيون تلقائيًا.").setPositiveButton("معلومات التطبيق",(dialog,which)->startActivityForResult(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:"+pkg)),2)).setNegativeButton("رجوع",null).show();else startActivityForResult(new Intent(Intent.ACTION_UNINSTALL_PACKAGE,Uri.parse("package:"+pkg)),1);}catch(Exception e){Toast.makeText(this,"لا تتوفر هذه العملية على الجهاز",android.widget.Toast.LENGTH_SHORT).show();}}).show();}
+ @Override public void onActivityResult(int a,int b,Intent d){super.onActivityResult(a,b,d);scan();}
+ @Override public void onDestroy(){dead=true;worker.shutdownNow();super.onDestroy();}
 }

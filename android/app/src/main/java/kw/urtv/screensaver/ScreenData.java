@@ -21,12 +21,15 @@ import java.util.concurrent.Future;
 /** Bounded native data fetches with offline prayers and a city/day-specific disk cache. */
 final class ScreenData {
     final kw.urtv.shared.CalendarData calendar;
+    private final Context contextForAlerts;
     boolean official;
     String prayerSource="محسوبة";
     final int[] adjustments;
     String hijri="";
-    static final ZoneId KUWAIT=ZoneId.of("Asia/Kuwait");
-    final String city, panel;
+    kw.urtv.shared.Place place;
+    ZoneId zone=ZoneId.of("Asia/Kuwait");
+    final String city, weatherCity, panel;
+    final kw.urtv.shared.DisplayOptions options;final kw.urtv.shared.Place weatherPlace;
     final double latitude, longitude;
     final String identity;
     String day="";
@@ -43,12 +46,12 @@ final class ScreenData {
     private long lastPrayer,lastWeather,nextAttempt;
 
     ScreenData(Context context,Runnable changed) {
-        calendar=new kw.urtv.shared.CalendarData(context);
-        Prefs prefs=new Prefs(context);
+        contextForAlerts=context.getApplicationContext();calendar=new kw.urtv.shared.CalendarData(context);
+        options=kw.urtv.shared.DisplayOptions.load(context);weatherPlace=options.weatherLocation(context);Prefs prefs=new Prefs(context);place=prefs.place();zone=options.clockZone(context);
         adjustments=prefs.adjustments();
         String[] location=prefs.city();
-        city=location[0];latitude=Double.parseDouble(location[1]);longitude=Double.parseDouble(location[2]);
-        panel=prefs.panel();identity=city+":"+latitude+":"+longitude;
+        city=location[0];weatherCity=weatherPlace.name;latitude=weatherPlace.lat;longitude=weatherPlace.lon;
+        panel=options.focused()?"prayers":prefs.panel();identity=weatherPlace.json();
         this.changed=changed;cache=context.getSharedPreferences("native_saver_data",Context.MODE_PRIVATE);
         try {
             weatherData=new JSONObject(cache.getString(identity+":weather",""));
@@ -63,34 +66,35 @@ final class ScreenData {
         executor.shutdownNow();main.removeCallbacksAndMessages(null);
     }
     private void refreshDay() {
-        String today=LocalDate.now(KUWAIT).toString();
+        String today=LocalDate.now(zone).toString();
         if(today.equals(day))return;
         day=today;lastPrayer=0;official=false;hijri="";
         applySchedule(LocalDate.parse(day));
     }
-    private kw.urtv.shared.RegionSchedule.Result schedule(LocalDate d){return calendar.resolve(d,latitude,longitude,adjustments,PrayerTimes.calculate(d,latitude,longitude));}
-    private void applySchedule(LocalDate d){kw.urtv.shared.RegionSchedule.Result result=schedule(d);prayers=result.times;official=result.verified;prayerSource=result.source;kw.urtv.shared.CalendarData.Day base=calendar.get(d);hijri=base==null?"":base.hijri;if(official)lastPrayer=System.currentTimeMillis();}
+    private kw.urtv.shared.RegionSchedule.Result schedule(LocalDate d){return kw.urtv.shared.WorldPrayers.resolve(calendar,d,place,adjustments);}
+    private void applySchedule(LocalDate d){if(!options.prayersEnabled){prayers=null;official=false;hijri="";return;}kw.urtv.shared.RegionSchedule.Result result=schedule(d);prayers=result.times;official=result.verified;prayerSource=result.source;kw.urtv.shared.CalendarData.Day base=place.country.equals("KW")?calendar.get(d):null;hijri=base==null?"":base.hijri;if(official)lastPrayer=System.currentTimeMillis();}
     int[] tableTimes(LocalDate shown){return prayers==null?null:shown.toString().equals(day)?prayers:schedule(shown).times;}
-    int[] tomorrow(){return schedule(LocalDate.parse(day).plusDays(1)).times;}
+    int[] tomorrow(){if(!options.prayersEnabled)return null;return schedule(LocalDate.parse(day).plusDays(1)).times;}
     boolean tomorrowOfficial(){return schedule(LocalDate.parse(day).plusDays(1)).verified;}
     boolean weatherStale(){return lastWeather>0&&System.currentTimeMillis()-lastWeather>3600000L;}
     private void fetchIfNeeded() {
         long now=System.currentTimeMillis();
         if(!active || now<nextAttempt || pending!=null&&!pending.isDone())return;
-        boolean needPrayer=kw.urtv.shared.RegionCatalog.usesCityRecord(latitude,longitude)&&(lastPrayer==0||now-lastPrayer>=6*3600000L);
-        boolean needWeather=weatherData==null||now-lastWeather>=1800000L||now<lastWeather;
+        boolean needPrayer=options.prayersEnabled&&place.officialEligible()&&(lastPrayer==0||now-lastPrayer>=6*3600000L);
+        boolean needWeather=options.showsWeather()&&(weatherData==null||now-lastWeather>=1800000L||now<lastWeather);
         if(!needPrayer&&!needWeather)return;
         nextAttempt=now+300000; // failure backoff, not an every-minute network loop
         final int token=generation;final String wantedDay=day,wantedIdentity=identity;
-        final String query="latitude="+latitude+"&longitude="+longitude+"&timezone=Asia%2FKuwait";
+        final String query="latitude="+latitude+"&longitude="+longitude+"&timezone="+android.net.Uri.encode(weatherPlace.zone);
         pending=executor.submit(()-> {
-            if(needPrayer&&kw.urtv.shared.RegionCatalog.usesCityRecord(latitude,longitude))try {
+            if(needPrayer&&place.officialEligible())try {
                 kw.urtv.shared.CalendarData.Day verified=calendar.fetch(LocalDate.parse(wantedDay));
                 main.post(()->{if(active&&token==generation&&wantedDay.equals(day)){applySchedule(LocalDate.parse(wantedDay));changed.run();}});
                 if(calendar.get(LocalDate.parse(wantedDay).plusDays(1))==null)calendar.fetch(LocalDate.parse(wantedDay).plusDays(1));
+                PrayerAlerts.schedule(contextForAlerts);
             } catch(Exception ignored) { }
             if(needWeather)try {
-                JSONObject data=get("https://api.open-meteo.com/v1/forecast?"+query+"&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code&forecast_days=5");
+                JSONObject data=get("https://api.open-meteo.com/v1/forecast?"+query+"&current=temperature_2m,weather_code,is_day&daily=temperature_2m_max,temperature_2m_min,weather_code&forecast_days=5");
                 if(!Double.isFinite(data.getJSONObject("current").getDouble("temperature_2m")))throw new IllegalArgumentException();
                 if(!Double.isFinite(data.getJSONObject("daily").getJSONArray("temperature_2m_max").getDouble(0))
                         || !Double.isFinite(data.getJSONObject("daily").getJSONArray("temperature_2m_min").getDouble(0)))
@@ -98,7 +102,7 @@ final class ScreenData {
                 try { JSONObject air=get("https://air-quality-api.open-meteo.com/v1/air-quality?"+query+"&current=pm10,dust").getJSONObject("current");
                     data.put("dust",Math.max(air.optDouble("pm10",0),air.optDouble("dust",0))); } catch(Exception ignored) { }
                 main.post(()->{if(active&&token==generation) {
-                    weatherData=data;lastWeather=System.currentTimeMillis();cache.edit().putString(wantedIdentity+":weather",data.toString()).putLong(wantedIdentity+":weatherAt",lastWeather).apply();changed.run();
+                    weatherData=data;lastWeather=System.currentTimeMillis();cache.edit().clear().putString(wantedIdentity+":weather",data.toString()).putLong(wantedIdentity+":weatherAt",lastWeather).apply();changed.run();
                 }});
             }catch(Exception ignored) { }
         });

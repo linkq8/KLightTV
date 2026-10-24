@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+echo "Legacy device changes are blocked. Use tools/device_safety.py, then reviewed tools/install.py or tools/tv-manager/server.py. No device was changed." >&2
+exit 2
 # Put a TV that was set up with these tools back the way it came, so it can be set up again "like new":
 # every package from our lists re-enabled, the stock home and screensaver back, our apps (old and new names)
 # removed, and TV Bro and SmartTube if the setup installed them, tweaks undone. Your own apps and data are not touched.

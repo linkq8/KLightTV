@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+echo "Legacy device changes are blocked. Use tools/device_safety.py, then reviewed tools/install.py or tools/tv-manager/server.py. No device was changed." >&2
+exit 2
 # Type text into whatever field is focused on the TV (open the on-screen keyboard first).
 #
 #   optimize/type.sh "hello world"        type the given text

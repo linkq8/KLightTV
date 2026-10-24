@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+echo "Legacy device changes are blocked. Use tools/device_safety.py, then reviewed tools/install.py or tools/tv-manager/server.py. No device was changed." >&2
+exit 2
 #   optimize/install.sh saver      شاشة KLightTV: install + make it the screensaver
 #   optimize/install.sh launcher   the home screen: install + make it the default Home
 #   optimize/install.sh all        both

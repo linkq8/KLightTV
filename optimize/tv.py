@@ -13,6 +13,9 @@
 Built for slow or flaky Wi-Fi: connecting and every command are retried, a dropped connection is
 reopened, and an interrupted upload resumes where it stopped.
 """
+import importlib.util
+_spec=importlib.util.spec_from_file_location("device_safety",__import__("pathlib").Path(__file__).resolve().parents[1]/"tools/device_safety.py")
+_safety=importlib.util.module_from_spec(_spec);_spec.loader.exec_module(_safety)
 import base64
 import hashlib
 import os
@@ -71,6 +74,8 @@ class TV:
             self.dev = None
 
     def call(self, fn, *args, **kw):
+        if fn not in ("shell","pull") or (fn=="shell" and (not args or not _safety.readonly_command(args[0]))):
+            raise ValueError("Legacy transport is read-only; use the device-safety workflow.")
         for attempt in range(TRIES):
             try:
                 if self.dev is None:
@@ -86,6 +91,7 @@ class TV:
                 time.sleep(wait)
 
     def shell(self, cmd, timeout=120):
+        if not _safety.readonly_command(cmd):raise ValueError("Legacy shell is read-only. Use the reviewed device-safety workflow.")
         return self.call("shell", cmd, read_timeout_s=timeout) or ""
 
 
@@ -168,6 +174,8 @@ def wait_for_tv(limit_s=300):
 
 def main():
     a = sys.argv[1:]
+    if a and a[0] in ("--reboot","--push-b64"):
+        sys.exit("Legacy device mutation blocked; use the reviewed device-safety workflow.")
     if a == ["--wait"]:
         wait_for_tv()
         return
