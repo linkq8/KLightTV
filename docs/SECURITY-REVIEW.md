@@ -20,6 +20,8 @@ Initial CodeQL analysis produced 36 findings. They were reviewed by source locat
 - Local operator-input findings: ADB/JAVA_HOME/PATH executable selection, explicitly selected calendar/package-list files, and local upload/snapshot paths are intended capabilities of local CLI tools. They are not supplied by the authenticated loopback manager API. Arguments use arrays, not a host shell. These were triaged as false positives or test-only usage, with per-alert rationale. Do not pass untrusted executables or environment variables to these tools.
 - Certificate pinning findings: public weather requests use standard platform HTTPS certificate and hostname validation, with no custom trust bypass and no account credentials. Pinning third-party service certificates is deliberately not added. Explicit cleartext prohibition was added to both Android apps. The pinning recommendations are documented accepted design decisions, not dismissed evidence of a TLS bypass.
 
+A post-merge scan also recommended making the already constrained release-version path explicitly recognizable as an allowlist. Version validation now uses three bounded ASCII numeric components; tests verify that path traversal, URLs, query strings, Unicode digits, newlines and oversized versions cause no network request.
+
 Scanner dismissals are visible in GitHub with rationale. Findings corrected by code should close after the patched default branch is reanalyzed; scan status must be checked separately from configuration status.
 
 ## Validation

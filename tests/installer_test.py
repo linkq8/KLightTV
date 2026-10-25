@@ -20,6 +20,12 @@ class Fake:
   if args[:2]==('dumpsys','activity'):return 'mResumedActivity: kw.urtv.home/.MainActivity'
   return 'test'
 class Tests(unittest.TestCase):
+ def test_release_version_cannot_change_download_origin_or_path(self):
+  with tempfile.TemporaryDirectory() as d,patch.object(m.urllib.request,'urlopen') as request:
+   for version in ['1.0.0/../../private','1.0.0?url=http://localhost','https://example.org','1.0.0\n','١.٠.٠','0'*100000+'.1.2','1.2','1.2.3.4']:
+    with self.assertRaises(ValueError):m.download_installers(pathlib.Path(d),version)
+   request.assert_not_called()
+
  def test_explicit_device_snapshot_and_restore(self):
   f=Fake();state=m.inspect(f)
   with tempfile.TemporaryDirectory() as d:
