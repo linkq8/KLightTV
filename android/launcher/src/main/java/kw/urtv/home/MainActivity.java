@@ -286,7 +286,7 @@ public class MainActivity extends Activity {
         bottom.setClipChildren(false);
         bottom.setClipToPadding(false);
         if(displayOptions.focused())content.addView(bottom,llp(-1,-2,dp(40),0,dp(40),dp(20)));
-        else hero.addView(bottom, lp(-1, -2, Gravity.BOTTOM, dp(40), 0, dp(40), dp(20)));
+        else hero.addView(bottom, lp(-1, -2, Gravity.BOTTOM, dp(40), 0, dp(40), dp(16)));
 
         title = text(34, "sans-serif-light", Color.WHITE);
         title.setShadowLayer(dp(18), 0, 0, 0x66000000);
@@ -299,7 +299,7 @@ public class MainActivity extends Activity {
         dockRow.setGravity(Gravity.CENTER);
         dockRow.setClipChildren(false);
         dockRow.setClipToPadding(false);
-        dockRow.setPadding(dp(8), dp(10), dp(8), dp(10));
+        dockRow.setPadding(dp(8), dp(8), dp(8), dp(8));
         GradientDrawable band = new GradientDrawable();
         band.setCornerRadius(dp(26));
         band.setColor(0x1FFFFFFF);
@@ -443,9 +443,12 @@ public class MainActivity extends Activity {
 
         for (int i = 0; i < dock.size(); i++) {
             View tile = tile(dock.get(i), true);
-            int cardWidth=Math.min(dp(displayOptions.focused()?104:88),(getResources().getDisplayMetrics().widthPixels-dp(160))/Math.max(1,dock.size()));
+            // Reserve the actual outer insets, row padding and gaps before sizing cards.
+            int count=Math.max(1,dock.size());
+            int available=getResources().getDisplayMetrics().widthPixels-dp(96)-dp(16)*count;
+            int cardWidth=Math.min(dp(112),available/count);
             LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(cardWidth, -2);
-            p.setMargins(dp(10), 0, dp(10), 0);
+            p.setMargins(dp(8), 0, dp(8), 0);
             dockRow.addView(tile, p);
         }
 
@@ -509,7 +512,7 @@ public class MainActivity extends Activity {
         } else {
             img.setScaleType(ImageView.ScaleType.FIT_CENTER);
             card.addView(img, new FrameLayout.LayoutParams(-1, -1));
-            img.setPadding(dp(22), dp(14), dp(22), dp(14));
+            img.setPadding(dp(8), dp(6), dp(8), dp(6));
         }
 
         // Focus ring and sheen, drawn above the art.
@@ -525,12 +528,12 @@ public class MainActivity extends Activity {
 
         box.addView(card, new LinearLayout.LayoutParams(-1, -2));
 
-        TextView label = text(11, "sans-serif-medium", Color.WHITE);
+        TextView label = text(13, "sans-serif-medium", Color.WHITE);
         label.setText(app.label);
         label.setSingleLine(true);
         label.setGravity(Gravity.CENTER);
         label.setAlpha(0f);
-        box.addView(label, llp(-1, dp(18), 0, dp(6), 0, 0));
+        box.addView(label, llp(-1, dp(20), 0, dp(4), 0, 0));
 
         card.setOnClickListener(v -> launch(new Intent(Intent.ACTION_MAIN)
                 .addCategory(app.category)
