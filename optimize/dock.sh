@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+echo "Legacy device changes are blocked. Use tools/device_safety.py, then reviewed tools/install.py or tools/tv-manager/server.py. No device was changed." >&2
+exit 2
 # The home screen's favourites row, for agents and scripts: no remote, no long-press.
 #   optimize/dock.sh show                  the current order, left to right
 #   optimize/dock.sh apps                  every app that can go in it: package | name

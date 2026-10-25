@@ -41,7 +41,8 @@ public final class CalendarData {
         HttpURLConnection c=(HttpURLConnection)new java.net.URL(URL+"?country_id=1&date="+date).openConnection();c.setConnectTimeout(7000);c.setReadTimeout(7000);c.setRequestProperty("X-Requested-With","XMLHttpRequest");c.setRequestProperty("User-Agent","KLightTV/1.10.0");
         try(InputStream in=c.getInputStream()){
             Day result=parse(read(in),date);if(Thread.currentThread().isInterrupted())throw new InterruptedException();JSONArray times=new JSONArray();for(int n:result.times)times.put(String.format(Locale.ROOT,"%02d:%02d",n/60,n%60));
-            cache.edit().putString(date.toString(),new JSONObject().put("times",times).put("hijri",result.hijri).toString()).apply();return result;
+            SharedPreferences.Editor edit=cache.edit();for(String key:cache.getAll().keySet())try{if(LocalDate.parse(key).isBefore(date.minusDays(45))||LocalDate.parse(key).isAfter(date.plusDays(45)))edit.remove(key);}catch(Exception ignored){}
+            edit.putString(date.toString(),new JSONObject().put("times",times).put("hijri",result.hijri).toString()).apply();return result;
         }finally{c.disconnect();}
     }
     private static String read(InputStream in)throws Exception{ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] b=new byte[4096];int n;while((n=in.read(b))!=-1){if(Thread.currentThread().isInterrupted())throw new InterruptedException();out.write(b,0,n);if(out.size()>262144)throw new IOException("Too large");}return out.toString("UTF-8");}

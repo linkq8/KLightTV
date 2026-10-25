@@ -12,8 +12,8 @@ android {
         targetSdk 34
         // CI passes its run number so every build installs over the previous one; 3.x since the new signing key,
         // the same number as the home app and as the release (v3.N)
-        versionCode((System.getenv('ANDROID_VERSION_CODE') ?: '15') as int)
-        versionName "1.10.4"
+        versionCode((System.getenv('ANDROID_VERSION_CODE') ?: '21') as int)
+        versionName "2.0.1"
     }
 
     signingConfigs {
@@ -39,7 +39,7 @@ android {
     // Native screensaver; browser preview remains in dist/ for desktop use.
     sourceSets {
         main.java.srcDirs += ["../shared/src/main/java"]
-        main { assets.srcDirs = ["$buildDir/generated/assets"] }   // native fonts and local backgrounds
+        main { assets.srcDirs = ["$buildDir/generated/assets"] }   // native fonts and calendar data
     }
 
     compileOptions {
@@ -52,7 +52,10 @@ android {
 def copyRuntime = tasks.register('copyRuntime', Sync) {
     from('../launcher/src/main/assets/fonts') { include '*.otf'; into 'fonts' }
     from('../../assets/calendar') { include '*.json'; into 'calendar' }
-    from('../../assets/backgrounds') { include '*.jpg'; into 'backgrounds' }
     into "$buildDir/generated/assets"
 }
 preBuild.dependsOn copyRuntime
+
+dependencies { implementation "com.batoulapps.adhan:adhan:1.2.1" }
+
+android.sourceSets.main.assets.srcDir("../shared/src/main/assets")

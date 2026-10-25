@@ -1,4 +1,6 @@
 #!/system/bin/sh
+echo "Legacy device changes are blocked. Use tools/device_safety.py, then reviewed tools/install.py or tools/tv-manager/server.py. No device was changed." >&2
+exit 2
 # Safety switch, runs ON the TV. Started by optimize/install.sh before the stock home is disabled.
 # If /data/local/tmp/home_ok does not appear within LIMIT seconds (the new home did not come up),
 # it puts the stock home back on its own: re-enable it, re-enable the setup app, make it home, press Home.

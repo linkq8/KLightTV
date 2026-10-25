@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+echo "Legacy device changes are blocked. Use tools/device_safety.py, then reviewed tools/install.py or tools/tv-manager/server.py. No device was changed." >&2
+exit 2
 # Kuwait settings: show | cities | city NAME [LAT LON] | card prayers|forecast|none | home-card prayers|forecast|none
 set -euo pipefail
 cd "$(dirname "$0")/.."

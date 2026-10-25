@@ -1,0 +1,86 @@
+[
+  {
+    "id": "kuwait",
+    "country": "KW",
+    "lat": 29.3759,
+    "lon": 47.9774,
+    "radiusKm": 22,
+    "name": "مدينة الكويت",
+    "url": "https://raw.githubusercontent.com/linkq8/KLightTV/bd5c1e4/assets/backgrounds/composed.jpg",
+    "author": "KLightTV · user reference enhanced with AI",
+    "source": "https://github.com/linkq8/KLightTV/blob/bd5c1e4/assets/backgrounds/backgrounds.json",
+    "license": "User-provided composition; AI-enhanced and upscaled",
+    "licenseUrl": "",
+    "width": 3840,
+    "height": 2160,
+    "aliases": [
+      "مدينة الكويت",
+      "الكويت",
+      "Kuwait City",
+      "Kuwait",
+      "Al Kuwayt"
+    ]
+  },
+  {
+    "id": "riyadh",
+    "country": "SA",
+    "lat": 24.7136,
+    "lon": 46.6753,
+    "radiusKm": 35,
+    "name": "الرياض",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/2/20/Riyadh_Skyline.jpg",
+    "author": "B.alotaby",
+    "source": "https://commons.wikimedia.org/wiki/File:Riyadh_Skyline.jpg",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "width": 4109,
+    "height": 2311,
+    "aliases": [
+      "الرياض",
+      "Riyadh",
+      "Ar Riyad",
+      "Ar Riyāḑ"
+    ]
+  },
+  {
+    "id": "dubai",
+    "country": "AE",
+    "lat": 25.2048,
+    "lon": 55.2708,
+    "radiusKm": 28,
+    "name": "دبي",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/d/d0/Madinat_Jumeirah-Dubai3303.JPG",
+    "author": "Diego Delso",
+    "source": "https://commons.wikimedia.org/wiki/File:Madinat_Jumeirah-Dubai3303.JPG",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "width": 4167,
+    "height": 2824,
+    "aliases": [
+      "دبي",
+      "Dubai",
+      "Dubayy"
+    ]
+  },
+  {
+    "id": "doha",
+    "country": "QA",
+    "lat": 25.2854,
+    "lon": 51.531,
+    "radiusKm": 18,
+    "name": "الدوحة",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/b/be/Doha_-_West_Bay_Skyline_02.jpg",
+    "author": "P. Hughes",
+    "source": "https://commons.wikimedia.org/wiki/File:Doha_-_West_Bay_Skyline_02.jpg",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+    "width": 5188,
+    "height": 3712,
+    "aliases": [
+      "الدوحة",
+      "Doha",
+      "Ad Dawhah",
+      "Ad Dawḩah"
+    ]
+  }
+]

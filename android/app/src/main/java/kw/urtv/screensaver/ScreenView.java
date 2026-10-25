@@ -33,26 +33,29 @@ import java.util.concurrent.Executors;
 
 /** A native, minute-driven display. One decoded photo; no WebView or browser subprocess. */
 final class ScreenView extends View {
-    private static final int SAND=0xFFF6EFE0,GOLD=0xFFDCB86F,WHITE=0xFFFFFDF6;
+    private static final int SAND=0xFFF1F5FA,GOLD=0xFF8EDBEA,WHITE=0xFFF1F5FA;
     private static final Locale AR=new Locale("ar","KW");
-    private static final String[] BACKGROUNDS={"composed.jpg","water.jpg","dusk.jpg","sunset.jpg"};
     private static final int[][] SHIFTS={{0,0},{3,2},{0,4},{-3,2},{-3,-2},{0,-4},{3,-2}};
+    private final kw.urtv.shared.WeatherSymbol weatherSymbol=new kw.urtv.shared.WeatherSymbol();
     private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
     private final Typeface medium,regular,display,bold;
+    private final kw.urtv.shared.TimeTiles.GlassPainter glassDigits=new kw.urtv.shared.TimeTiles.GlassPainter();
     private final Handler handler=new Handler(Looper.getMainLooper());
     private final ExecutorService photos=Executors.newSingleThreadExecutor();
     private final Map<String,StaticLayout> layouts=new HashMap<>();
     private final ScreenData data;
-    private final kw.urtv.shared.DisplayOptions options;
+    private final kw.urtv.shared.FootballBoard football;
+    private final kw.urtv.shared.Palette palette;private final kw.urtv.shared.DisplayOptions options;
     private int imageEdge;
+    private final kw.urtv.shared.FocusBackdrop focusBackdrop,neutralBackdrop;
+    private final kw.urtv.shared.SimplePrayerFace simpleFace;
     private final Shader veil=new LinearGradient(0,0,0,1080,
-            new int[]{0x9E030A07,0x4D030A07,0x1F030A07,0x6B030A07,0xE0020604},
+            new int[]{0xDB101D2D,0x87101D2D,0x50101D2D,0x45101D2D,0xE8101D2D},
             new float[]{0,.22f,.46f,.74f,1},Shader.TileMode.CLAMP);
     private final Shader bottomVeil=new LinearGradient(0,756,0,1080,
             new int[]{0x00020704,0x8C020704,0xDB020604},new float[]{0,.42f,1},Shader.TileMode.CLAMP);
     private final Shader radial=ellipse(422,367,2304,918,new int[]{0x6B030E09,0x00030E09},new float[]{0,.58f});
     private final Shader topVeil=ellipse(0,0,1290,367,new int[]{0xD1020906,0x6B020906,0x00020906},new float[]{0,.45f,.76f});
-    private String pinnedPhoto="";
     private Bitmap background;
     private long photoSlot=Long.MIN_VALUE;
     private boolean destroyed,attached;
@@ -61,13 +64,13 @@ final class ScreenView extends View {
     private final Runnable minute=new Runnable() {
         @Override public void run() {
             if(destroyed||!attached)return;
-            now=ZonedDateTime.now(ScreenData.KUWAIT);
+            now=ZonedDateTime.now(data.zone);
             LocalDate today=now.toLocalDate();
             gregorian=PrayerClock.ar(today.format(DateTimeFormatter.ofPattern("EEEE، d MMMM yyyy",AR)));
             hijri=PrayerClock.ar(today.format(DateTimeFormatter.ofPattern("EEEE، ",AR))
                     +HijrahDate.from(today).format(DateTimeFormatter.ofPattern("d MMMM yyyy",AR)))+" هـ";
             layouts.clear();
-            updatePhoto();data.tick();updateDescription();invalidate();
+            updatePhoto();data.tick();if(options.saverMatches&&options.showsMatches())football.refresh();updateDescription();invalidate();
             handler.postDelayed(this,60000-System.currentTimeMillis()%60000+30);
         }
     };
@@ -75,12 +78,12 @@ final class ScreenView extends View {
     static ScreenView create(Context context){return new ScreenView(context);}
     private ScreenView(Context context) {
         super(context);
-        options=kw.urtv.shared.DisplayOptions.load(context);imageEdge=options.device(context).edge;
+        simpleFace=new kw.urtv.shared.SimplePrayerFace(context);options=kw.urtv.shared.DisplayOptions.load(context);palette=new kw.urtv.shared.Palette(context,options);imageEdge=options.device(context).edge;focusBackdrop=new kw.urtv.shared.FocusBackdrop(options.focusColor);focusBackdrop.setBounds(0,0,1920,1080);neutralBackdrop=new kw.urtv.shared.FocusBackdrop(palette.light?"white":"blue");neutralBackdrop.setBounds(0,0,1920,1080);
         medium=Typeface.createFromAsset(context.getAssets(),"fonts/Thmanyah-Medium.otf");
         regular=Typeface.createFromAsset(context.getAssets(),"fonts/Thmanyah-Regular.otf");
         display=Typeface.createFromAsset(context.getAssets(),"fonts/ThmanyahDisplay-Bold.otf");
         bold=Typeface.create(medium,Typeface.BOLD);
-        try(android.database.Cursor c=context.getContentResolver().query(android.net.Uri.parse("content://kw.urtv.home.photos"),null,null,null,null)){if(c!=null&&c.moveToFirst()&&c.getInt(0)==1){String f=c.getString(1);if(java.util.Arrays.asList(BACKGROUNDS).contains(f))pinnedPhoto=f;}}catch(Exception ignored){}
+        football=new kw.urtv.shared.FootballBoard(context,this::invalidate);
         data=new ScreenData(context,()->{if(!destroyed){layouts.clear();updateDescription();invalidate();}});
         setFocusable(false);setBackgroundColor(0xFF040E09);
         setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
@@ -91,40 +94,30 @@ final class ScreenView extends View {
     void destroy() {
         if(destroyed)return;
         destroyed=true;attached=false;handler.removeCallbacksAndMessages(null);
-        data.destroy();photos.shutdownNow();layouts.clear();
+        football.close();data.destroy();photos.shutdownNow();layouts.clear();
         if(background!=null){background.recycle();background=null;}
     }
     private static Shader ellipse(float x,float y,float rx,float ry,int[] colors,float[] stops) {
         Shader shader=new RadialGradient(0,0,1,colors,stops,Shader.TileMode.CLAMP);
         Matrix matrix=new Matrix();matrix.setScale(rx,ry);matrix.postTranslate(x,y);shader.setLocalMatrix(matrix);return shader;
     }
+    private String photoCity="";
     private void updatePhoto() {
-        if(getWidth()==0||getHeight()==0||destroyed)return;
-        long slot=pinnedPhoto.isEmpty()?System.currentTimeMillis()/1800000L:0;
-        if(slot==photoSlot)return;
-        photoSlot=slot;
-        String name=pinnedPhoto.isEmpty()?BACKGROUNDS[(int)Math.floorMod(slot,BACKGROUNDS.length)]:pinnedPhoto;
-        float cap=Math.min(1f,imageEdge/(float)Math.max(getWidth(),getHeight()));
-        int width=Math.round(getWidth()*cap),height=Math.round(getHeight()*cap);
-        photos.execute(()-> {
-            Bitmap decoded=null;
-            try {
-                BitmapFactory.Options options=new BitmapFactory.Options();options.inJustDecodeBounds=true;
-                try(InputStream stream=getContext().getAssets().open("backgrounds/"+name)){BitmapFactory.decodeStream(stream,null,options);}
-                float target=Math.max(width/(float)options.outWidth,height/(float)options.outHeight);
-                int sample=1;while(sample*2<=1/target)sample*=2;
-                options.inJustDecodeBounds=false;options.inSampleSize=sample;options.inPreferredConfig=imageEdge<=1920?Bitmap.Config.RGB_565:Bitmap.Config.ARGB_8888;
-                try(InputStream stream=getContext().getAssets().open("backgrounds/"+name)){decoded=BitmapFactory.decodeStream(stream,null,options);}
-                if(decoded==null)return;
-                float factor=Math.max(width/(float)decoded.getWidth(),height/(float)decoded.getHeight());
-                Bitmap sized=Bitmap.createScaledBitmap(decoded,Math.round(decoded.getWidth()*factor),Math.round(decoded.getHeight()*factor),true);
-                if(sized!=decoded)decoded.recycle();decoded=null;
-                handler.post(()-> {
-                    if(destroyed||photoSlot!=slot){sized.recycle();return;}
-                    Bitmap old=background;background=sized;invalidate();if(old!=null)old.recycle();
-                });
-            }catch(OutOfMemoryError low){if(decoded!=null)decoded.recycle();if(imageEdge>1280)handler.post(this::memoryPressure);}
-            catch(Exception ignored){if(decoded!=null)decoded.recycle();}
+        if(options.focused()||getWidth()==0||getHeight()==0||destroyed)return;
+        final kw.urtv.shared.Place place=kw.urtv.shared.Place.load(getContext());
+        final String city=kw.urtv.shared.CityWallpaper.identity(place);
+        if(!city.equals(photoCity)){photoCity=city;photoSlot=Long.MIN_VALUE;if(background!=null){background.recycle();background=null;}invalidate();}
+        if(background!=null&&photoSlot!=Long.MIN_VALUE)return;
+        long slot=System.currentTimeMillis()/300000L;
+        if(slot==photoSlot)return;photoSlot=slot;
+        photos.execute(()->{
+            Bitmap bm=null;
+            try{bm=kw.urtv.shared.CityWallpaper.decode(getContext(),place,imageEdge);}catch(java.io.IOException ignored){}
+            catch(OutOfMemoryError low){if(imageEdge>1280)handler.post(this::memoryPressure);}
+            final Bitmap result=bm;
+            handler.post(()->{if(destroyed||photoSlot!=slot||!city.equals(kw.urtv.shared.CityWallpaper.identity(kw.urtv.shared.Place.load(getContext())))){if(result!=null)result.recycle();return;}
+                if(result!=null){Bitmap old=background;background=result;invalidate();if(old!=null)old.recycle();}
+            });
         });
     }
     @Override protected void onDraw(Canvas canvas) {
@@ -132,92 +125,66 @@ final class ScreenView extends View {
         if(destroyed||now==null)return;
         float scale=Math.min(getWidth()/1920f,getHeight()/1080f);
         canvas.save();canvas.translate((getWidth()-1920*scale)/2,(getHeight()-1080*scale)/2);canvas.scale(scale,scale);
-        canvas.drawColor(0xFF040E09);
-        paint.setShader(null);paint.setColor(Color.WHITE);
-        if(background!=null) {
-            float factor=Math.max(1920*1.03f/background.getWidth(),1080*1.03f/background.getHeight());
-            float w=background.getWidth()*factor,h=background.getHeight()*factor;
-            canvas.drawBitmap(background,null,new RectF((1920-w)/2,(1080-h)*.26f,(1920+w)/2,(1080-h)*.26f+h),paint);
-            paint.setColor(0x0A000000);canvas.drawRect(0,0,1920,1080,paint);
-        }
-        for(Shader shader:new Shader[]{veil,radial,topVeil,bottomVeil}){paint.setShader(shader);paint.setColor(Color.WHITE);canvas.drawRect(0,0,1920,1080,paint);}
         paint.setShader(null);
+        canvas.drawColor(palette.light?0xFFF2F2F7:0xFF121316);
+        if(options.focused())focusBackdrop.draw(canvas);else if(background==null)neutralBackdrop.draw(canvas);
+        if(!options.focused()&&background!=null){
+            paint.setColor(Color.WHITE);float factor=Math.max(1920f/background.getWidth(),1080f/background.getHeight());float w=background.getWidth()*factor,h=background.getHeight()*factor;
+            canvas.drawBitmap(background,null,new RectF((1920-w)/2,(1080-h)/2,(1920+w)/2,(1080+h)/2),paint);
+            paint.setShader(veil);canvas.drawRect(0,0,1920,1080,paint);paint.setShader(null);
+        }
         if(options.overlayAlpha()>0){paint.setColor(Color.argb(options.overlayAlpha(),0,0,0));canvas.drawRect(0,0,1920,1080,paint);}
         int[] shift=SHIFTS[(int)(System.currentTimeMillis()/240000L%SHIFTS.length)];
         canvas.save();canvas.translate(shift[0],shift[1]);
-        text(canvas,data.official?kw.urtv.shared.CalendarData.ar(data.hijri)+" هـ":hijri,1040,34,812,36*options.textScale(),medium,SAND,Layout.Alignment.ALIGN_NORMAL);
-        text(canvas,gregorian,1050,90,802,23*options.textScale(),regular,0xFFC3B8A2,Layout.Alignment.ALIGN_NORMAL);
-        line(canvas,1678,137,1852,137,0xFFDCB86F,1);
-        boolean table=!"none".equals(data.panel);
-        if(table)drawTable(canvas);
-        float center=table?1467:960;
-        drawClock(canvas,options.hour24&&table?center+60:center);
-        text(canvas,"بتوقيت "+data.city,center-390,545,780,23,regular,0xFFD8CDB6,Layout.Alignment.ALIGN_CENTER);
-        paint.setColor(GOLD);canvas.drawCircle(center+160,558,5,paint);
-        drawWeather(canvas,center);
-        drawNextPrayer(canvas);
+
+        if(options.focused()){
+            LocalDate d=now.toLocalDate(),shown=data.prayers==null?d:kw.urtv.shared.PrayerTableDay.select(d,now.getHour()*60+now.getMinute(),data.prayers[5]);
+            canvas.save();canvas.translate(80,90);simpleFace.draw(canvas,1760,900,options,palette,now,data.city,data.prayers,data.tableTimes(shown),shown,data.tomorrow());canvas.restore();
+        }else{
+            // Readable from across the room: enlarged side groups use the full height.
+            canvas.save();canvas.translate(-4,-50);canvas.scale(1.06f,1.06f);
+            if(!"none".equals(data.panel))drawTable(canvas);canvas.restore();
+            canvas.save();canvas.translate(-110,-50);canvas.scale(1.06f,1.06f);
+            text(canvas,gregorian,rightX(),350,rightWidth(),28,regular,SAND,Layout.Alignment.ALIGN_CENTER);
+            drawClock(canvas,rightX()+rightWidth()/2);drawWeather(canvas,rightX()+rightWidth()/2);drawNextPrayer(canvas);
+            if(options.saverMatches&&options.showsMatches())football.draw(canvas,rightX(),806,rightWidth(),126);canvas.restore();
+        }
         canvas.restore();
         double hour=now.getHour()+now.getMinute()/60.0;
         double opacity=hour>=23||hour<5?.46:hour>=21?.46*(hour-21)/2:hour<7?.46*(7-hour)/2:0;
-        if(opacity>0){paint.setColor(Color.argb((int)Math.round(Math.min(.46,opacity)*255),0,0,0));canvas.drawRect(0,0,1920,1080,paint);}
+        if(opacity>0&&!palette.light){paint.setColor(Color.argb((int)Math.round(Math.min(.46,opacity)*255),0,0,0));canvas.drawRect(0,0,1920,1080,paint);}
         canvas.restore();
     }
-    private void drawTable(Canvas canvas) {
-        RectF box=new RectF(76,181,996,773);
-        paint.setStyle(Paint.Style.FILL);paint.setColor(options.contrast?0xC007110B:0xA8091810);canvas.drawRoundRect(box,24,24,paint);
-        paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(2);paint.setColor(0x29DCB86F);canvas.drawRoundRect(box,24,24,paint);paint.setStyle(Paint.Style.FILL);
-        boolean forecast="forecast".equals(data.panel);
-        int minute=now.getHour()*60+now.getMinute();LocalDate today=now.toLocalDate();
-        LocalDate shown=data.prayers==null?today:kw.urtv.shared.PrayerTableDay.select(today,minute,data.prayers[5]);
-        int[] tableTimes=data.tableTimes(shown);
-        text(canvas,forecast?"الأيام القادمة":kw.urtv.shared.PrayerTableDay.heading(today,shown)+" · "+data.city,104,188,864,30,bold,GOLD,Layout.Alignment.ALIGN_NORMAL);
-        if(!forecast)text(canvas,kw.urtv.shared.PrayerTableDay.dateLabel(shown),104,225,864,22,medium,SAND,Layout.Alignment.ALIGN_NORMAL);
-        line(canvas,104,256,968,256,0x80DCB86F,1);
-        String[] names=prayerNames();names[2]=shown.getDayOfWeek().getValue()==5?"الجمعة":"الظهر";boolean highlighted=false;
-        for(int i=0;i<(forecast?5:6);i++) {
-            float top=274+i*82f;
-            String label=names[i],value=tableTimes==null?"—":options.time(tableTimes[i]);
-            boolean next=!forecast&&tableTimes!=null&&(shown.isAfter(today)||minute<data.prayers[5])&&i==(shown.isAfter(today)?0:kw.urtv.shared.CalendarData.next(data.prayers,minute));
-            if(next){RectF highlight=new RectF(88,top-8,984,top+72);paint.setColor(0x4DE7B94F);canvas.drawRoundRect(highlight,16,16,paint);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(1.5f);paint.setColor(0x80F0C75E);canvas.drawRoundRect(highlight,16,16,paint);paint.setStyle(Paint.Style.FILL);}
-            if(next)highlighted=true;
-            int color=next?0xFFFFFFFF:SAND;
-            if(forecast) {
-                try {
-                    JSONObject daily=data.weatherData.getJSONObject("daily");
-                    LocalDate date=LocalDate.parse(daily.getJSONArray("time").getString(i));
-                    label=i==0?"اليوم":i==1?"غداً":date.format(DateTimeFormatter.ofPattern("EEEE",AR));
-                    value=PrayerClock.ar(Math.round(daily.getJSONArray("temperature_2m_max").getDouble(i))+"° / "+Math.round(daily.getJSONArray("temperature_2m_min").getDouble(i))+"°");
-                    text(canvas,ScreenData.weatherName(daily.getJSONArray("weather_code").getInt(i)),365,top+13,300,25,regular,0xFF9FB8A8,Layout.Alignment.ALIGN_CENTER);
-                }catch(Exception e){label=i==0?"جارٍ تحميل الطقس…":"";value="";}
-            }
-            text(canvas,label,650,top+3,298,40*options.prayerScale(),options.heavy?bold:medium,color,Layout.Alignment.ALIGN_NORMAL);
-            if(forecast||tableTimes==null)text(canvas,value,104,top,260,36,medium,WHITE,Layout.Alignment.ALIGN_OPPOSITE);
-            else kw.urtv.shared.TimeTiles.draw(canvas,kw.urtv.shared.TimeTiles.clock(tableTimes[i],options),kw.urtv.shared.TimeTiles.period(tableTimes[i],options),112,top-2,55*options.prayerScale(),bold,next?color:WHITE);
-            if(i<(forecast?4:5))line(canvas,104,top+70,968,top+70,0x21DCB86F,1);
+    private float rightX(){return options.focused()?980:1110;}
+    private float rightWidth(){return options.focused()?860:730;}
+    private int glassPanel(){return options.focused()?Color.TRANSPARENT:options.contrast?palette.panel:(palette.light?0xD0F5F8FA:0x70101D2D);}
+    private void glassTime(Canvas c,String digits,String period,float x,float y,float width,float height,float scale){
+        glassDigits.draw(c,digits,period,x,y,width,height,options.heavy?bold:medium,palette.ink,.68f*scale,palette.light,options.contrast,true);
+    }
+    private void drawTable(Canvas canvas){if("forecast".equals(data.panel)?!options.showsWeather():!options.prayersEnabled)return;
+        paint.setColor(glassPanel());canvas.drawRoundRect(new RectF(80,174,options.focused()?940:780,options.focused()?940:918),24,24,paint);
+        int minute=now.getHour()*60+now.getMinute();LocalDate today=now.toLocalDate(),shown=data.prayers==null?today:kw.urtv.shared.PrayerTableDay.select(today,minute,data.prayers[5]);
+        int[] times=data.tableTimes(shown);boolean forecast="forecast".equals(data.panel);
+        text(canvas,forecast?"الأيام القادمة":kw.urtv.shared.PrayerTableDay.heading(today,shown)+" · "+data.city,110,208,options.focused()?796:636,28,medium,GOLD,Layout.Alignment.ALIGN_NORMAL);
+        text(canvas,kw.urtv.shared.PrayerTableDay.dateLabel(shown),110,254,options.focused()?796:636,24,regular,SAND,Layout.Alignment.ALIGN_NORMAL);
+        String[] names=prayerNames();names[2]=shown.getDayOfWeek().getValue()==5?"الجمعة":"الظهر";
+        for(int i=0;i<(forecast?5:6);i++){
+            float y=312+i*(options.focused()?108:96);boolean next=times!=null&&(shown.isAfter(today)||minute<data.prayers[5])&&i==(shown.isAfter(today)?0:kw.urtv.shared.CalendarData.next(data.prayers,minute));
+            if(next&&!forecast){paint.setColor(palette.selected);canvas.drawRoundRect(new RectF(104,y-8,options.focused()?916:756,y+80),16,16,paint);}
+            String label=names[i],value="—";
+            if(forecast)try{JSONObject d=data.weatherData.getJSONObject("daily");label=i==0?"اليوم":i==1?"غدًا":LocalDate.parse(d.getJSONArray("time").getString(i)).format(DateTimeFormatter.ofPattern("EEEE",AR));value=options.numbers(Math.round(d.getJSONArray("temperature_2m_max").getDouble(i))+"° / "+Math.round(d.getJSONArray("temperature_2m_min").getDouble(i))+"°");}catch(Exception e){label="—";}
+            text(canvas,label,options.focused()?588:490,y+15,options.focused()?312:232,34*options.prayerScale(),medium,WHITE,options.focused()?Layout.Alignment.ALIGN_CENTER:Layout.Alignment.ALIGN_NORMAL);
+            if(forecast)text(canvas,value,132,y+15,320,34*options.prayerScale(),medium,WHITE,Layout.Alignment.ALIGN_CENTER);
+            else glassTime(canvas,times==null?"--:--":kw.urtv.shared.TimeTiles.clock(times[i],options),times==null?"":kw.urtv.shared.TimeTiles.period(times[i],options),132,y,320,72,options.prayerScale());
         }
     }
-    private void drawClock(Canvas canvas,float center) {
-        String hour=options.numbers(options.hour24?String.format(Locale.ROOT,"%02d",now.getHour()):""+(now.getHour()%12==0?12:now.getHour()%12));
-        String minute=options.numbers(String.format(Locale.ROOT,"%02d",now.getMinute()));
-        TextPaint digits=new TextPaint(Paint.ANTI_ALIAS_FLAG);digits.setTypeface(options.latin?bold:display);digits.setTextSize(326);
-        float gap=26,colonSize=150,colonWidth=70;
-        float hours=digits.measureText(hour)+(hour.length()-1)*gap;
-        float minutes=digits.measureText(minute)+(minute.length()-1)*gap;
-        float amWidth=options.hour24?0:110,total=hours+minutes+colonWidth+40+amWidth+14;
-        float factor=Math.min(1,("none".equals(data.panel)?1250:options.hour24?650:774)/total);
-        canvas.save();canvas.translate(center-total*factor/2,365*(1-factor));canvas.scale(factor,factor);
-        float left=amWidth+14,baseline=486;
-        digits.setColor(WHITE);digits.setShadowLayer(8,0,4,0x99000000);
-        float cursor=left;
-        for(char ch:hour.toCharArray()){String value=""+ch;canvas.drawText(value,cursor,baseline,digits);cursor+=digits.measureText(value)+gap;}
-        cursor-=gap;
-        digits.setColor(GOLD);digits.setTextSize(colonSize);canvas.drawText(":",cursor+14,baseline-70,digits);
-        cursor+=colonWidth+40;digits.setColor(WHITE);digits.setTextSize(326);
-        for(char ch:minute.toCharArray()){String value=""+ch;canvas.drawText(value,cursor,baseline,digits);cursor+=digits.measureText(value)+gap;}
-        text(canvas,options.hour24?"":now.getHour()<12?"ص":"م",0,214,amWidth,92,medium,GOLD,Layout.Alignment.ALIGN_CENTER);
-        canvas.restore();
+    private void drawClock(Canvas canvas,float center){
+        int m=now.getHour()*60+now.getMinute();String clock=kw.urtv.shared.TimeTiles.clock(m,options);
+        text(canvas,clock.replaceFirst("^[0٠]", ""),rightX(),178,rightWidth(),options.focused()?116:142,options.usesLatin()?medium:display,WHITE,Layout.Alignment.ALIGN_CENTER);
+        TextPaint clockMeasure=new TextPaint();clockMeasure.setTypeface(options.usesLatin()?bold:display);clockMeasure.setTextSize(options.focused()?116:142);float clockWidth=clockMeasure.measureText(clock.replaceFirst("^[0٠]", ""));
+        text(canvas,kw.urtv.shared.TimeTiles.period(m,options),center+clockWidth/2+8,options.focused()?260:280,60,30,medium,GOLD,Layout.Alignment.ALIGN_CENTER);
     }
-    private void drawWeather(Canvas canvas,float center) {
+    private void drawWeather(Canvas canvas,float center) {if(!options.showsWeather())return;
         try {
             JSONObject current=data.weatherData.getJSONObject("current"),daily=data.weatherData.getJSONObject("daily");
             double dust=data.weatherData.optDouble("dust",0);
@@ -226,40 +193,41 @@ final class ScreenView extends View {
             TextPaint measure=new TextPaint(Paint.ANTI_ALIAS_FLAG);measure.setTypeface(display);measure.setTextSize(48);
             float tempWidth=measure.measureText(temp)+12;
             measure.setTypeface(bold);float descWidth=measure.measureText(description)+12;
-            float left=center-(tempWidth+descWidth+24)/2;
-            text(canvas,description,left,607,descWidth,48,bold,dust>=150?0xFFE8B86A:SAND,Layout.Alignment.ALIGN_CENTER);
-            text(canvas,"\u2066"+temp+"\u2069",left+descWidth+24,607,tempWidth,48,display,0xFFFFFCF2,Layout.Alignment.ALIGN_CENTER);
+            float left=center-(tempWidth+descWidth+112)/2;
+            weatherSymbol.draw(canvas,left+descWidth+tempWidth+48,418,56,current.getInt("weather_code"),dust,current.optInt("is_day",1)==0,palette.ink,palette.light?0xFF8A611E:0xFFE8C780);
+            text(canvas,description,left,424,descWidth,40,bold,GOLD,Layout.Alignment.ALIGN_CENTER);
+            text(canvas,"\u2066"+temp+"\u2069",left+descWidth+24,424,tempWidth,40,options.heavy?bold:medium,WHITE,Layout.Alignment.ALIGN_CENTER);
             String range=PrayerClock.ar(Math.round(daily.getJSONArray("temperature_2m_max").getDouble(0))+"° / "+Math.round(daily.getJSONArray("temperature_2m_min").getDouble(0))+"°");
-            text(canvas,data.city+"  ·  "+range,center-420,671,840,32*options.textScale(),medium,0xFFE2D7C2,Layout.Alignment.ALIGN_CENTER);
-        }catch(Exception e){text(canvas,"الطقس غير متاح حالياً",center-420,625,840,32,medium,0xFFE2D7C2,Layout.Alignment.ALIGN_CENTER);text(canvas,data.city,center-420,679,840,24,regular,0xFFE2D7C2,Layout.Alignment.ALIGN_CENTER);}
-        if(data.weatherStale())text(canvas,"آخر قراءة محفوظة · تعذر تحديث الطقس",center-420,715,840,22,regular,0xFFE8B86A,Layout.Alignment.ALIGN_CENTER);
-        line(canvas,center-205,752,center+205,752,0x80DCB86F,1);
+            text(canvas,data.weatherCity+"  ·  "+range,center-420,486,840,26*options.textScale(),medium,0xFFB9CADA,Layout.Alignment.ALIGN_CENTER);
+        }catch(Exception e){text(canvas,"الطقس غير متاح حالياً",center-420,424,840,32,medium,0xFFE2D7C2,Layout.Alignment.ALIGN_CENTER);text(canvas,data.weatherCity,center-420,486,840,24,regular,0xFFE2D7C2,Layout.Alignment.ALIGN_CENTER);}
+        if(data.weatherStale())text(canvas,"آخر قراءة محفوظة · تعذر تحديث الطقس",center-420,530,840,22,regular,0xFFE8B86A,Layout.Alignment.ALIGN_CENTER);
+        line(canvas,center-205,560,center+205,560,palette.light?0x40334E60:0x40B9CADA,1);
     }
     private String[] prayerNames(){return new String[]{"الفجر","الشروق",now.getDayOfWeek().getValue()==5?"الجمعة":"الظهر","العصر","المغرب","العشاء"};}
-    private void drawNextPrayer(Canvas canvas) {
-        if(data.prayers==null)return;
+    private void drawNextPrayer(Canvas canvas){if(!options.prayersEnabled)return;
+        paint.setColor(glassPanel());canvas.drawRoundRect(new RectF(rightX(),590,1840,766),24,24,paint);
+        if(data.prayers==null||data.tomorrow()==null){text(canvas,data.prayerSource,1080,720,730,32,medium,GOLD,Layout.Alignment.ALIGN_NORMAL);return;}
         int[] next=PrayerClock.next(data.prayers,data.tomorrow(),now.getHour()*60+now.getMinute());
-        float h=80*options.nextScale();
-        for(float left:new float[]{76,986}){RectF card=new RectF(left,838,left+868,1050);paint.setColor(0xA0111F2B);canvas.drawRoundRect(card,20,20,paint);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(1.5f);paint.setColor(0x30D9C17B);canvas.drawRoundRect(card,20,20,paint);paint.setStyle(Paint.Style.FILL);}
-        text(canvas,"التالي · "+prayerNames()[next[0]],1006,858,828,34,bold,GOLD,Layout.Alignment.ALIGN_CENTER);
-        kw.urtv.shared.TimeTiles.draw(canvas,kw.urtv.shared.TimeTiles.clock(next[1],options),kw.urtv.shared.TimeTiles.period(next[1],options),1420-h*(options.hour24?2.835f:3.51f)/2,930,h,bold,SAND);
-        text(canvas,"الوقت المتبقي",96,858,828,34,bold,GOLD,Layout.Alignment.ALIGN_CENTER);
-        kw.urtv.shared.TimeTiles.draw(canvas,kw.urtv.shared.TimeTiles.remaining(next[2],options),"",510-h*2.835f/2,930,h,bold,SAND);
+        next[2]=kw.urtv.shared.PrayerCountdown.minutes(now,next[1],next[0]==0&&now.getHour()*60+now.getMinute()>=data.prayers[5]);
+        text(canvas,"التالي · "+prayerNames()[next[0]],rightX()+rightWidth()/2,612,rightWidth()/2,29*options.nextScale(),medium,GOLD,Layout.Alignment.ALIGN_CENTER);
+        text(canvas,"الوقت المتبقي",rightX(),612,rightWidth()/2,28*options.nextScale(),medium,SAND,Layout.Alignment.ALIGN_CENTER);
+        glassTime(canvas,kw.urtv.shared.TimeTiles.clock(next[1],options),kw.urtv.shared.TimeTiles.period(next[1],options),rightX()+rightWidth()/2+16,670,rightWidth()/2-32,78,options.nextScale());
+        glassTime(canvas,kw.urtv.shared.TimeTiles.remaining(next[2],options),"",rightX()+16,670,rightWidth()/2-32,78,options.nextScale());
     }
     private void line(Canvas canvas,float x,float y,float endX,float endY,int color,float width) {
         paint.setShader(null);paint.setColor(color);paint.setStrokeWidth(width);canvas.drawLine(x,y,endX,endY,paint);
     }
     private void updateDescription(){
-        if(data==null||data.prayers==null||now==null)return;
+        if(data==null||now==null)return;if(data.prayers==null){setContentDescription(options.time(now.getHour()*60+now.getMinute())+(options.showsWeather()?" · "+data.weatherCity:""));return;}
         LocalDate today=now.toLocalDate(),shown=kw.urtv.shared.PrayerTableDay.select(today,now.getHour()*60+now.getMinute(),data.prayers[5]);
         StringBuilder b=new StringBuilder(options.time(now.getHour()*60+now.getMinute())).append(" · ").append(data.city);
         String[] names=prayerNames();names[2]=shown.getDayOfWeek().getValue()==5?"الجمعة":"الظهر";
-        if("prayers".equals(data.panel)){b.append("\n").append(kw.urtv.shared.PrayerTableDay.heading(today,shown)).append(" · ").append(options.numbers(kw.urtv.shared.PrayerTableDay.dateLabel(shown)));int[] times=data.tableTimes(shown);for(int i=0;i<6;i++)b.append("\n").append(names[i]).append(" ").append(options.time(times[i]));}
+        if("prayers".equals(data.panel)){b.append("\n").append(kw.urtv.shared.PrayerTableDay.heading(today,shown)).append(" · ").append(options.numbers(kw.urtv.shared.PrayerTableDay.dateLabel(shown)));int[] times=data.tableTimes(shown);if(times!=null)for(int i=0;i<6;i++)b.append("\n").append(names[i]).append(" ").append(options.time(times[i]));}
         setContentDescription(b.toString());
     }
     void memoryPressure(){kw.urtv.shared.DisplayOptions.memoryPressure=true;imageEdge=1280;photoSlot=Long.MIN_VALUE;if(attached)updatePhoto();}
     private void text(Canvas canvas,String text,float x,float y,float width,float size,Typeface font,int color,Layout.Alignment align) {
-        text=options.numbers(text);if(options.latin&&font==display)font=bold;if(options.heavy&&(font==regular||font==medium))font=bold;
+        color=palette.text(color);text=options.numbers(text);if(options.usesLatin()&&font==display)font=bold;if(options.heavy&&(font==regular||font==medium))font=bold;
         TextPaint measure=new TextPaint();measure.setTypeface(font);measure.setTextSize(size);float needed=measure.measureText(text);if(needed>width)size*=width/needed;
         String key=text+":"+width+":"+size+":"+font.hashCode()+":"+color+":"+align;
         StaticLayout layout=layouts.get(key);

@@ -28,3 +28,10 @@ optimize/lists/mine.txt
 *.log
 artifacts/
 .venv/
+
+# Device-specific inspection/research records contain identifiers; never publish them.
+**/*audit*.json
+**/*audit*-review.json
+
+# Local emulator/device evidence; publish selected sanitized captures in docs/images only.
+/outputs/

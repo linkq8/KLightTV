@@ -1,0 +1,30 @@
+{
+  "build": 20,
+  "emulator": "Android API34 ARM64, 1920x1080, SwiftShader",
+  "checks": [
+    "Changing country requires a new city; review cannot save a mismatched city",
+    "Skip preserved saved city and content preferences",
+    "Style chosen with D-pad and saved through review",
+    "Simple home has no weather or football content",
+    "Native screensaver uses the shared simple clock/prayer layout",
+    "Missing Google TV chooser handled; system accounts settings opened",
+    "Scenic style restores Arabic digits and weather without changing the city",
+    "D-pad Down reaches the Calendar app below simple Home; Up returns to system shortcuts",
+    "Accounts fallback verified as the top resumed Android Settings activity",
+    "Original launcher and saver APKs pulled and verified against ZIP CRC and SHA-256 on the emulator",
+    "Google TV original launcher remains protected by the device policy"
+  ],
+  "limits": [
+    "No Google TV launcher or real profiles on this emulator; actual TCL switching remains unverified",
+    "No physical TV install",
+    "World city photography remains unavailable; bundled photos are Kuwait"
+  ],
+  "build_checks": [
+    "Both APK debug builds and Android lint passed",
+    "tests/run.sh passed",
+    "Prayer and quick setup JVM regressions passed",
+    "9 installer tests, including blocked install/restore when backup fails",
+    "9 device safety tests"
+  ],
+  "navigation_renderer": "Host GPU after SwiftShader emulator instability; final navigation check passed"
+}

@@ -1,0 +1,25 @@
+{
+  "emulator": "Android API34 ARM64 1920x1080",
+  "version": "2.0.0 (19) development",
+  "checks": [
+    "Existing install: review/back/skip preserve preferences; no repeat prompt (verified before fresh reset)",
+    "Fresh app entry offers quick setup once",
+    "Missing country/city blocked without saving",
+    "One city selection shared by both modules; picker result retained",
+    "Save uses one city and English numerals in simple mode",
+    "Quick setup did not enable reminder alarms",
+    "Simple Home has prayer table and no weather text",
+    "Simple saver launched with same settings",
+    "Photo style restores Arabic numerals and shared weather city on both screens",
+    "Advanced setup language selectable; cancel keeps saved settings",
+    "Leaving/interruption does not commit unsaved choices",
+    "Review draft and selected style survive actual Activity recreation on display-size change",
+    "Saved city retained after full emulator cold restart; light setup preview canceled without saving"
+  ],
+  "limits": [
+    "No physical TV installed",
+    "No commercial stream overlay test",
+    "Emulator supports touch as well as directional keys"
+  ],
+  "capture_renderer": "SwiftShader software renderer for final captures"
+}

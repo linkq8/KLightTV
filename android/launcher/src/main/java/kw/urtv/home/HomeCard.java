@@ -42,11 +42,13 @@ final class HomeCard {
     private TextView nextPrayer,remainingLabel;
     private final kw.urtv.shared.TimeTiles.TileView[] tiles=new kw.urtv.shared.TimeTiles.TileView[6];
     private kw.urtv.shared.TimeTiles.TileView nextTiles,nextTimeTiles;
-    private static final ZoneId KUWAIT = ZoneId.of("Asia/Kuwait");
-    private static final int SAND=0xFFF6EFE0, GOLD=0xFFDCB86F;
+    private kw.urtv.shared.Palette palette;private kw.urtv.shared.Place place,weatherPlace;private String weatherIdentity="";private boolean prayersWereEnabled;
+    private ZoneId zone = ZoneId.of("Asia/Kuwait");
+    private static final int SAND=0xFFF1F5FA, GOLD=0xFF8EDBEA;
     private final Activity activity;
     private final FrameLayout surface;
-    private final LinearLayout table, weather;
+    private final LinearLayout table, weather, clocks;
+    private final kw.urtv.shared.FootballBoard.Surface football;
     private final TextView heading, tableDate, condition, weatherDetails;
     private final TextView[] labels = new TextView[6], values = new TextView[6];
     private final Typeface medium, bold;
@@ -66,73 +68,88 @@ final class HomeCard {
     private final Runnable minute = new Runnable() {
         @Override public void run() {
             if (!active) return;
-            refreshDay(); render(); fetchIfNeeded();
+            refreshDay(); render(); fetchIfNeeded(); if(options.showsMatches())football.refresh();else football.setVisibility(View.GONE);
             main.postDelayed(this, 60000 - System.currentTimeMillis()%60000 + 25);
         }
     };
 
+    // Home: timetable left; clock, weather, next prayer and matches right.
+    private final LinearLayout rightStack;
+    private View simpleView;private kw.urtv.shared.SimplePrayerFace simpleFace;
+    private final kw.urtv.shared.WeatherSymbol.SymbolView weatherSymbol;
     HomeCard(Activity activity, ViewGroup parent, FrameLayout.LayoutParams params) {
-        this.activity=activity;
-        calendar=new kw.urtv.shared.CalendarData(activity);
-        cache=activity.getSharedPreferences("native_home_data", Activity.MODE_PRIVATE);
-        medium=Typeface.createFromAsset(activity.getAssets(), "fonts/Thmanyah-Medium.otf");
-        bold=Typeface.create(medium, Typeface.BOLD);
-        surface=new FrameLayout(activity);
-        surface.setFocusable(false);
-        surface.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
-        parent.addView(surface, params);
-        table=new LinearLayout(activity); table.setOrientation(LinearLayout.VERTICAL);
-        table.setPadding(dp(14),dp(8),dp(14),dp(8));
-        GradientDrawable background=new GradientDrawable();
-        background.setColor(0xA8091810); background.setCornerRadius(dp(12)); background.setStroke(dp(1),0x29DCB86F);
-        table.setBackground(background);
-        surface.addView(table,new FrameLayout.LayoutParams(1,dp(234),Gravity.LEFT|Gravity.TOP));
-        heading=text(16,GOLD); heading.setText("مواقيت اليوم");
-        table.addView(heading,new LinearLayout.LayoutParams(-1,dp(22)));
-        tableDate=text(12,SAND);tableDate.setTypeface(medium);table.addView(tableDate,new LinearLayout.LayoutParams(-1,dp(17)));
-        for(int i=0;i<6;i++) {
-            FrameLayout row=new FrameLayout(activity);row.setPadding(dp(6),0,dp(6),0);
-            labels[i]=text(20,SAND); values[i]=text(23,0xFFFFFDF6);
-            values[i].setGravity(Gravity.LEFT|Gravity.CENTER_VERTICAL);
-            row.addView(labels[i],new FrameLayout.LayoutParams(-1,-1));
-            row.addView(values[i],new FrameLayout.LayoutParams(-1,-1));
-            tiles[i]=new kw.urtv.shared.TimeTiles.TileView(activity);tiles[i].setDigitScale(.68f);FrameLayout.LayoutParams tileParams=new FrameLayout.LayoutParams(dp(205),-1,Gravity.LEFT);tileParams.topMargin=dp(2);tileParams.bottomMargin=dp(2);row.addView(tiles[i],tileParams);
-            if(i<5) { View line=new View(activity); line.setBackgroundColor(0x21DCB86F);
-                row.addView(line,new FrameLayout.LayoutParams(-1,dp(1),Gravity.BOTTOM)); }
-            table.addView(row,new LinearLayout.LayoutParams(-1,dp(32)));
+        this.activity=activity;calendar=new kw.urtv.shared.CalendarData(activity);cache=activity.getSharedPreferences("native_home_data",0);
+        medium=Typeface.createFromAsset(activity.getAssets(),"fonts/Thmanyah-Medium.otf");bold=Typeface.create(medium,Typeface.BOLD);
+        options=kw.urtv.shared.DisplayOptions.load(activity);
+        int column=options.focused()?(activity.getResources().getDisplayMetrics().widthPixels-dp(104))/2:dp(280);
+        surface=new FrameLayout(activity);surface.setFocusable(false);surface.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);parent.addView(surface,params);
+        table=new LinearLayout(activity);table.setOrientation(android.widget.LinearLayout.VERTICAL);table.setPadding(dp(12),dp(options.focused()?6:12),dp(12),dp(options.focused()?6:12));
+        GradientDrawable bg=new GradientDrawable();bg.setColor(0xED101D2D);bg.setCornerRadius(dp(12));table.setBackground(bg);
+        FrameLayout.LayoutParams tp=new FrameLayout.LayoutParams(column,-2,Gravity.LEFT|Gravity.TOP);tp.topMargin=dp(8);surface.addView(table,tp);
+        heading=text(14,GOLD);tableDate=text(12,0xFFB9CADA);
+        table.addView(heading,new LinearLayout.LayoutParams(-1,dp(options.focused()?22:25)));
+        LinearLayout.LayoutParams dateParams=new LinearLayout.LayoutParams(-1,dp(options.focused()?18:23));dateParams.bottomMargin=dp(options.focused()?4:8);table.addView(tableDate,dateParams);
+        LinearLayout route=new LinearLayout(activity);route.setOrientation(LinearLayout.VERTICAL);table.addView(route,new LinearLayout.LayoutParams(-1,-2));
+        for(int i=0;i<6;i++){
+            FrameLayout row=new FrameLayout(activity);row.setPadding(dp(10),dp(options.focused()?2:4),dp(10),dp(options.focused()?2:4));
+            LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,dp(options.focused()?43:40));if(i>0)rp.topMargin=dp(2);route.addView(row,rp);
+            labels[i]=text(17,SAND);if(options.focused())labels[i].setGravity(Gravity.CENTER);row.addView(labels[i],new FrameLayout.LayoutParams(dp(options.focused()?156:78),-1,Gravity.RIGHT|Gravity.CENTER_VERTICAL));
+            values[i]=text(17,SAND);values[i].setGravity(Gravity.CENTER);row.addView(values[i],new FrameLayout.LayoutParams(dp(options.focused()?200:150),-1,Gravity.LEFT|Gravity.CENTER_VERTICAL));
+            tiles[i]=new kw.urtv.shared.TimeTiles.TileView(activity);tiles[i].alignCentered();
+            FrameLayout.LayoutParams timeParams=new FrameLayout.LayoutParams(dp(options.focused()?190:150),-1,Gravity.LEFT|Gravity.CENTER_VERTICAL);row.addView(tiles[i],timeParams);
         }
-        weather=new LinearLayout(activity);weather.setOrientation(LinearLayout.VERTICAL);
-        condition=text(28,SAND); condition.setSingleLine(false);
-        weatherDetails=text(18,0xFFE2D7C2);weatherDetails.setTypeface(medium);weatherDetails.setSingleLine(false);
-        weather.addView(condition,new LinearLayout.LayoutParams(-1,-2));
-        LinearLayout.LayoutParams detailParams=new LinearLayout.LayoutParams(-1,-2); detailParams.topMargin=dp(8);
-        weather.addView(weatherDetails,detailParams);
-        LinearLayout clocks=new LinearLayout(activity);clocks.setOrientation(LinearLayout.HORIZONTAL);clocks.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
-        LinearLayout remainingColumn=new LinearLayout(activity),nextColumn=new LinearLayout(activity);remainingColumn.setOrientation(1);nextColumn.setOrientation(1);
-        LinearLayout.LayoutParams remainingParams=new LinearLayout.LayoutParams(0,-2,1);remainingParams.rightMargin=dp(8);
-        clocks.addView(remainingColumn,remainingParams);clocks.addView(nextColumn,new LinearLayout.LayoutParams(0,-2,1));
-        for(LinearLayout column:new LinearLayout[]{remainingColumn,nextColumn}){column.setPadding(dp(8),dp(7),dp(8),dp(9));GradientDrawable card=new GradientDrawable();card.setColor(0xA0111F2B);card.setCornerRadius(dp(10));card.setStroke(dp(1),0x30D9C17B);column.setBackground(card);}
-        remainingLabel=text(14,GOLD);remainingLabel.setText("الوقت المتبقي");remainingLabel.setGravity(Gravity.CENTER);
-        nextPrayer=text(14,GOLD);nextPrayer.setGravity(Gravity.CENTER);
-        remainingColumn.addView(remainingLabel,new LinearLayout.LayoutParams(-1,dp(28)));nextColumn.addView(nextPrayer,new LinearLayout.LayoutParams(-1,dp(28)));
-        nextTiles=new kw.urtv.shared.TimeTiles.TileView(activity);nextTimeTiles=new kw.urtv.shared.TimeTiles.TileView(activity);nextTiles.alignCentered();nextTimeTiles.alignCentered();
-        remainingColumn.addView(nextTiles,new LinearLayout.LayoutParams(-1,dp(38)));nextColumn.addView(nextTimeTiles,new LinearLayout.LayoutParams(-1,dp(38)));
-        LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);cp.topMargin=dp(18);weather.addView(clocks,cp);
-        FrameLayout.LayoutParams wx=new FrameLayout.LayoutParams(1,-2,Gravity.RIGHT|Gravity.TOP);wx.topMargin=dp(80);
-        surface.addView(weather,wx);
-        surface.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)-> {
-            int width=r-l;
-            if(width!=or-ol) {
-                ViewGroup.LayoutParams p=table.getLayoutParams();p.width=Math.round(width*.53f);table.setLayoutParams(p);
-                p=weather.getLayoutParams();p.width=Math.round(width*.43f);weather.setLayoutParams(p);
-            }
-        });
+        rightStack=new LinearLayout(activity);rightStack.setOrientation(LinearLayout.VERTICAL);
+        FrameLayout.LayoutParams stackParams=new FrameLayout.LayoutParams(column,-2,Gravity.RIGHT|Gravity.TOP);stackParams.topMargin=dp(126);surface.addView(rightStack,stackParams);
+        weather=new LinearLayout(activity);weather.setOrientation(android.widget.LinearLayout.VERTICAL);weather.setGravity(Gravity.CENTER_HORIZONTAL);
+        condition=text(24,SAND);weatherDetails=text(13,0xFFB9CADA);
+        LinearLayout weatherLine=new LinearLayout(activity);weatherLine.setGravity(Gravity.CENTER);weatherLine.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+        weatherLine.addView(condition,new LinearLayout.LayoutParams(-2,dp(32)));
+        weatherSymbol=new kw.urtv.shared.WeatherSymbol.SymbolView(activity);weatherSymbol.setVisibility(View.GONE);
+        LinearLayout.LayoutParams iconParams=new LinearLayout.LayoutParams(dp(30),dp(30));iconParams.leftMargin=dp(12);weatherLine.addView(weatherSymbol,iconParams);
+        weather.addView(weatherLine,new LinearLayout.LayoutParams(-1,-2));
+        weatherDetails.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams detailsParams=new LinearLayout.LayoutParams(-1,-2);detailsParams.topMargin=dp(2);weather.addView(weatherDetails,detailsParams);
+
+        clocks=new LinearLayout(activity);clocks.setOrientation(android.widget.LinearLayout.HORIZONTAL);clocks.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);clocks.setPadding(dp(12),dp(10),dp(12),dp(10));
+        GradientDrawable clockBg=new GradientDrawable();clockBg.setColor(0xE8101D2D);clockBg.setCornerRadius(dp(12));clocks.setBackground(clockBg);
+        LinearLayout nextColumn=new LinearLayout(activity),remainingColumn=new LinearLayout(activity);nextColumn.setOrientation(android.widget.LinearLayout.VERTICAL);remainingColumn.setOrientation(android.widget.LinearLayout.VERTICAL);
+        clocks.addView(nextColumn,new LinearLayout.LayoutParams(0,-2,1));clocks.addView(remainingColumn,new LinearLayout.LayoutParams(0,-2,1));
+        nextPrayer=text(15,GOLD);remainingLabel=text(13,0xFFB9CADA);remainingLabel.setText("الوقت المتبقي");nextPrayer.setGravity(Gravity.CENTER);remainingLabel.setGravity(Gravity.CENTER);
+        nextColumn.addView(nextPrayer,new LinearLayout.LayoutParams(-1,dp(30)));remainingColumn.addView(remainingLabel,new LinearLayout.LayoutParams(-1,dp(30)));
+        nextTimeTiles=new kw.urtv.shared.TimeTiles.TileView(activity);nextTiles=new kw.urtv.shared.TimeTiles.TileView(activity);nextTimeTiles.alignCentered();nextTiles.alignCentered();
+        nextColumn.addView(nextTimeTiles,new LinearLayout.LayoutParams(-1,dp(42)));remainingColumn.addView(nextTiles,new LinearLayout.LayoutParams(-1,dp(42)));
+        rightStack.addView(weather,new LinearLayout.LayoutParams(-1,-2));
+        LinearLayout.LayoutParams clockParams=new LinearLayout.LayoutParams(-1,-2);clockParams.topMargin=dp(12);rightStack.addView(clocks,clockParams);
+        football=new kw.urtv.shared.FootballBoard.Surface(activity);
+        LinearLayout.LayoutParams fp=new LinearLayout.LayoutParams(-1,dp(54));fp.topMargin=dp(12);rightStack.addView(football,fp);
+        if(options.focused()){
+            simpleFace=new kw.urtv.shared.SimplePrayerFace(activity);
+            simpleView=new View(activity){@Override protected void onDraw(android.graphics.Canvas c){ZonedDateTime n=ZonedDateTime.now(zone);LocalDate d=n.toLocalDate(),shown=prayers==null?d:kw.urtv.shared.PrayerTableDay.select(d,n.getHour()*60+n.getMinute(),prayers[5]);simpleFace.draw(c,getWidth(),getHeight(),options,palette,n,city,prayers,shown.equals(d)?prayers:schedule(shown).times,shown,prayers==null?null:schedule(d.plusDays(1)).times);}};
+            surface.addView(simpleView,new FrameLayout.LayoutParams(-1,-1));
+        }
+        table.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->surface.post(this::fitHero));
+        rightStack.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->surface.post(this::fitHero));
+    }
+    void alignBelowClock(int clockBottom){
+        if(options.focused())return;
+        FrameLayout.LayoutParams p=(FrameLayout.LayoutParams)rightStack.getLayoutParams();
+        p.topMargin=Math.max(dp(options.focused()?92:116),clockBottom-dp(options.focused()?56:80)+dp(10));rightStack.setLayoutParams(p);
+
+    }
+    private void fitHero(){
+        if(options.focused())return;
+        // Large reading modes may scroll slightly; never cover prayer/football content with the app dock.
+        int base=dp(options.focused()?56:80);
+        int bottom=Math.max(table.getBottom(),rightStack.getBottom());
+        View hero=(View)surface.getParent();int height=Math.max(activity.getResources().getDisplayMetrics().heightPixels,base+bottom+dp(120));
+        if(hero.getLayoutParams().height!=height){ViewGroup.LayoutParams hp=hero.getLayoutParams();hp.height=height;hero.setLayoutParams(hp);ViewGroup.LayoutParams sp=surface.getLayoutParams();sp.height=height-base;surface.setLayoutParams(sp);}
+
     }
 
     void refresh() {
         if(destroyed) return;
         active=true;
-        options=kw.urtv.shared.DisplayOptions.load(activity);
+        options=kw.urtv.shared.DisplayOptions.load(activity);palette=new kw.urtv.shared.Palette(activity,options);place=kw.urtv.shared.Place.load(activity);zone=options.clockZone(activity);weatherPlace=options.weatherLocation(activity);if(prayersWereEnabled!=options.prayersEnabled){day="";prayersWereEnabled=options.prayersEnabled;}
         applyReading();
         try(Cursor c=activity.getContentResolver().query(Uri.parse("content://kw.urtv.screensaver.config"),null,null,null,null)) {
             if(c!=null && c.moveToFirst()) {
@@ -143,22 +160,26 @@ final class HomeCard {
                     city=newCity;latitude=lat;longitude=lon;
                 }
                 panel=c.getString(1);
-                String raw=config.getQueryParameter("adjust");adjustments=new int[6];if(raw!=null){String[] a=raw.split(",");for(int i=0;i<6&&i<a.length;i++)adjustments[i]=Math.max(-6,Math.min(6,Integer.parseInt(a[i])));}
+                String raw=config.getQueryParameter("adjust");adjustments=new int[6];if(raw!=null)adjustments=kw.urtv.shared.PrayerCorrections.parse(raw);
             }
         } catch(Exception ignored) { }
-        String corrections=java.util.Arrays.toString(adjustments);if(!corrections.equals(correctionIdentity)){correctionIdentity=corrections;day="";lastPrayer=0;}
-        String key=city+":"+latitude+":"+longitude;
+        if(options.focused())panel="prayers";
+        String corrections=kw.urtv.shared.PrayerCorrections.key(place)+java.util.Arrays.toString(adjustments);if(!corrections.equals(correctionIdentity)){correctionIdentity=corrections;day="";lastPrayer=0;}
+        String key=place.json();
         if(!key.equals(identity)) {
-            cancel(); identity=key; day=""; weatherData=null;lastPrayer=0;lastWeather=0;nextAttempt=0;
+            cancel(); identity=key; day="";lastPrayer=0;nextAttempt=0;
+        }
+        String weatherKey=weatherPlace.json();
+        if(!weatherKey.equals(weatherIdentity)){cancel();weatherIdentity=weatherKey;weatherData=null;lastWeather=0;nextAttempt=0;
             try {
-                weatherData=new JSONObject(cache.getString(identity+":weather",""));
-                lastWeather=cache.getLong(identity+":weatherAt",0);
+                weatherData=new JSONObject(cache.getString(weatherIdentity+":weather",""));
+                lastWeather=cache.getLong(weatherIdentity+":weatherAt",0);
             } catch(Exception ignored) { }
         }
         main.removeCallbacks(minute); minute.run();
     }
     void pause() { active=false; main.removeCallbacks(minute); cancel(); }
-    void destroy() { pause();destroyed=true;executor.shutdownNow();((ViewGroup)surface.getParent()).removeView(surface); }
+    void destroy() { pause();football.close();destroyed=true;executor.shutdownNow();((ViewGroup)surface.getParent()).removeView(surface); }
     private void cancel() {
         generation++;
         if(pending!=null&&!pending.isDone())nextAttempt=0;
@@ -167,32 +188,32 @@ final class HomeCard {
         pending=null;
     }
     private void refreshDay() {
-        String today=LocalDate.now(KUWAIT).toString();
+        String today=LocalDate.now(zone).toString();
         if(today.equals(day))return;
         day=today;lastPrayer=0;official=false;
         applySchedule(LocalDate.parse(day));
     }
-    private kw.urtv.shared.RegionSchedule.Result schedule(LocalDate d){return calendar.resolve(d,latitude,longitude,adjustments,PrayerTimes.calculate(d,latitude,longitude));}
-    private void applySchedule(LocalDate d){kw.urtv.shared.RegionSchedule.Result result=schedule(d);prayers=result.times;official=result.verified;prayerSource=result.source;if(official)lastPrayer=System.currentTimeMillis();}
+    private kw.urtv.shared.RegionSchedule.Result schedule(LocalDate d){return kw.urtv.shared.WorldPrayers.resolve(calendar,d,place,adjustments);}
+    private void applySchedule(LocalDate d){if(!options.prayersEnabled){prayers=null;official=false;return;}kw.urtv.shared.RegionSchedule.Result result=schedule(d);prayers=result.times;official=result.verified;prayerSource=result.source;if(official)lastPrayer=System.currentTimeMillis();}
     private void fetchIfNeeded() {
         long now=System.currentTimeMillis();
         if(!active || now<nextAttempt || pending!=null&&!pending.isDone())return;
-        boolean needPrayer=kw.urtv.shared.RegionCatalog.usesCityRecord(latitude,longitude)&&(lastPrayer==0||now-lastPrayer>=6*3600000L);
-        boolean needWeather=weatherData==null||now-lastWeather>=1800000L||now<lastWeather;
+        boolean needPrayer=options.prayersEnabled&&place.officialEligible()&&(lastPrayer==0||now-lastPrayer>=6*3600000L);
+        boolean needWeather=options.showsWeather()&&(weatherData==null||now-lastWeather>=1800000L||now<lastWeather);
         if(!needPrayer&&!needWeather)return;
         nextAttempt=now+300000; // failure backoff, not an every-minute network loop
-        final int token=generation;final String wantedDay=day,wantedIdentity=identity;
-        final String query="latitude="+latitude+"&longitude="+longitude+"&timezone=Asia%2FKuwait";
+        final int token=generation;final String wantedDay=day,wantedIdentity=weatherIdentity;
+        final String query="latitude="+weatherPlace.lat+"&longitude="+weatherPlace.lon+"&timezone="+android.net.Uri.encode(weatherPlace.zone);
         pending=executor.submit(()-> {
             if(needPrayer)try {
-                if(kw.urtv.shared.RegionCatalog.usesCityRecord(latitude,longitude)){
+                if(place.officialEligible()){
                     kw.urtv.shared.CalendarData.Day verified=calendar.fetch(LocalDate.parse(wantedDay));
                     main.post(()->{if(active&&token==generation&&wantedDay.equals(day)){applySchedule(LocalDate.parse(wantedDay));render();}});
                     if(calendar.get(LocalDate.parse(wantedDay).plusDays(1))==null)calendar.fetch(LocalDate.parse(wantedDay).plusDays(1));
                 }
             } catch(Exception ignored) { }
             if(needWeather)try {
-                JSONObject data=get("https://api.open-meteo.com/v1/forecast?"+query+"&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code&forecast_days=5");
+                JSONObject data=get("https://api.open-meteo.com/v1/forecast?"+query+"&current=temperature_2m,weather_code,is_day&daily=temperature_2m_max,temperature_2m_min,weather_code&forecast_days=5");
                 if(!Double.isFinite(data.getJSONObject("current").getDouble("temperature_2m")))throw new IllegalArgumentException();
                 if(!Double.isFinite(data.getJSONObject("daily").getJSONArray("temperature_2m_max").getDouble(0))
                         || !Double.isFinite(data.getJSONObject("daily").getJSONArray("temperature_2m_min").getDouble(0)))
@@ -200,7 +221,7 @@ final class HomeCard {
                 try { JSONObject air=get("https://air-quality-api.open-meteo.com/v1/air-quality?"+query+"&current=pm10,dust").getJSONObject("current");
                     data.put("dust",Math.max(air.optDouble("pm10",0),air.optDouble("dust",0))); } catch(Exception ignored) { }
                 main.post(()->{if(active&&token==generation) {
-                    weatherData=data;lastWeather=System.currentTimeMillis();cache.edit().putString(wantedIdentity+":weather",data.toString()).putLong(wantedIdentity+":weatherAt",lastWeather).apply();render();
+                    weatherData=data;lastWeather=System.currentTimeMillis();cache.edit().clear().putString(wantedIdentity+":weather",data.toString()).putLong(wantedIdentity+":weatherAt",lastWeather).apply();render();
                 }});
             }catch(Exception ignored) { }
         });
@@ -220,18 +241,21 @@ final class HomeCard {
         } finally { c.disconnect();if(connection==c)connection=null; }
     }
     private void applyReading(){
-        float p=options.prayerScale(),t=options.textScale();int rowHeight=Math.min(40,Math.round(35*p));
-        for(int i=0;i<6;i++){labels[i].setTextSize(20*p);values[i].setTextSize(23*p);labels[i].setTypeface(medium,options.heavy?Typeface.BOLD:Typeface.NORMAL);values[i].setTypeface(medium,options.heavy?Typeface.BOLD:Typeface.NORMAL);View row=(View)labels[i].getParent();row.getLayoutParams().height=dp(rowHeight);}
-        nextTiles.getLayoutParams().height=dp(Math.round(38*options.nextScale()));nextTimeTiles.getLayoutParams().height=dp(Math.round(38*options.nextScale()));
-        table.getLayoutParams().height=dp(56+6*rowHeight);surface.getLayoutParams().height=dp(Math.max(320,56+6*rowHeight));
-        heading.setTextSize(15);condition.setTextSize(28*t);weatherDetails.setTextSize(18*t);nextPrayer.setTextSize(14*options.nextScale());remainingLabel.setTextSize(14*options.nextScale());
-        nextPrayer.setTypeface(medium,options.heavy?Typeface.BOLD:Typeface.NORMAL);
-        ((FrameLayout.LayoutParams)weather.getLayoutParams()).topMargin=dp(80+options.reading*14);
-        android.graphics.drawable.GradientDrawable bg=(android.graphics.drawable.GradientDrawable)table.getBackground();bg.setColor(options.contrast?0xC007110B:0xA8091810);table.requestLayout();surface.requestLayout();
+        heading.setTextColor(palette.accent);tableDate.setTextColor(palette.muted);weatherDetails.setTextColor(palette.muted);nextPrayer.setTextColor(palette.accent);remainingLabel.setTextColor(palette.muted);((GradientDrawable)((View)nextPrayer.getParent().getParent()).getBackground()).setColor(palette.panel);
+        for(int i=0;i<6;i++){View row=(View)labels[i].getParent();ViewGroup.LayoutParams rp=row.getLayoutParams();rp.height=dp((options.focused()?43:40)+Math.max(options.reading,options.prayer)*3);row.setLayoutParams(rp);labels[i].setTextSize(16*options.prayerScale());values[i].setTextSize(17*options.prayerScale());labels[i].setTypeface(medium,options.heavy?Typeface.BOLD:Typeface.NORMAL);}
+        condition.setTextSize(20*options.textScale());weatherDetails.setTextSize(13*options.textScale());nextPrayer.setTextSize(14*options.nextScale());remainingLabel.setTextSize(13*options.nextScale());
+        int glass=options.focused()?android.graphics.Color.TRANSPARENT:options.contrast?palette.panel:(palette.light?0xD0F5F8FA:0x70101D2D);
+        ((GradientDrawable)table.getBackground()).setColor(glass);
+        ((GradientDrawable)((View)nextPrayer.getParent().getParent()).getBackground()).setColor(glass);
+        for(kw.urtv.shared.TimeTiles.TileView tile:tiles){tile.setGlassTiles(palette.light,options.contrast);tile.setDigitScale(.68f*options.prayerScale());}
+        nextTimeTiles.setGlassTiles(palette.light,options.contrast);nextTiles.setGlassTiles(palette.light,options.contrast);
+        nextTimeTiles.setDigitScale(.68f*options.nextScale());nextTiles.setDigitScale(.68f*options.nextScale());
     }
     private void render() {
-        table.setVisibility("none".equals(panel)?View.GONE:View.VISIBLE);
-        ZonedDateTime now=ZonedDateTime.now(KUWAIT);int minute=now.getHour()*60+now.getMinute();
+        if(options.focused()&&simpleView!=null){table.setVisibility(View.GONE);rightStack.setVisibility(View.GONE);simpleView.invalidate();simpleView.setContentDescription("الساعة ومواقيت الصلاة · "+city+" · "+options.time(ZonedDateTime.now(zone).getHour()*60+ZonedDateTime.now(zone).getMinute())+(prayers==null?"":java.util.stream.IntStream.range(0,6).mapToObj(i->new String[]{"الفجر","الشروق","الظهر","العصر","المغرب","العشاء"}[i]+" "+options.time(prayers[i])).collect(java.util.stream.Collectors.joining(" · "))));return;}
+
+        table.setVisibility("none".equals(panel)||("forecast".equals(panel)?!options.showsWeather():!options.prayersEnabled)?View.GONE:View.VISIBLE);weather.setVisibility(options.showsWeather()?View.VISIBLE:View.GONE);clocks.setVisibility(options.prayersEnabled?View.VISIBLE:View.GONE);
+        ZonedDateTime now=ZonedDateTime.now(zone);int minute=now.getHour()*60+now.getMinute();
         LocalDate today=now.toLocalDate(),shown=prayers==null?today:kw.urtv.shared.PrayerTableDay.select(today,minute,prayers[5]);
         int[] tableTimes=shown.equals(today)?prayers:schedule(shown).times;
         heading.setText("forecast".equals(panel)?"الأيام القادمة":kw.urtv.shared.PrayerTableDay.heading(today,shown)+" · "+city);
@@ -250,37 +274,38 @@ final class HomeCard {
                     labels[i].setText(i==0?"اليوم":i==1?"غداً":d.format(DateTimeFormatter.ofPattern("EEEE",new Locale("ar"))));
                     values[i].setText(ar(Math.round(daily.getJSONArray("temperature_2m_max").getDouble(i))+"° / "+Math.round(daily.getJSONArray("temperature_2m_min").getDouble(i))+"°"));
                 }catch(Exception e){labels[i].setText(i==0?"جارٍ تحميل الطقس…":"");values[i].setText("");}
-                labels[i].setTextColor(SAND);values[i].setTextColor(SAND);
+                labels[i].setTextColor(palette.ink);values[i].setTextColor(palette.ink);
             } else {
                 labels[i].setText(names[i]);values[i].setText(tableTimes==null?"—":time(tableTimes[i]));
-                if(tableTimes!=null)tiles[i].update(kw.urtv.shared.TimeTiles.clock(tableTimes[i],options),kw.urtv.shared.TimeTiles.period(tableTimes[i],options),bold,0xFFFFFDF6,names[i]+" "+time(tableTimes[i]));
+                if(tableTimes!=null)tiles[i].update(kw.urtv.shared.TimeTiles.clock(tableTimes[i],options),kw.urtv.shared.TimeTiles.period(tableTimes[i],options),bold,palette.ink,names[i]+" "+time(tableTimes[i]));
                 boolean next=tableTimes!=null&&(shown.isAfter(today)||minute<prayers[5])&&i==(shown.isAfter(today)?0:kw.urtv.shared.CalendarData.next(prayers,minute));
-                if(next){GradientDrawable highlight=new GradientDrawable();highlight.setColor(0x4DE7B94F);highlight.setCornerRadius(dp(8));highlight.setStroke(dp(1),0x80F0C75E);row.setBackground(highlight);}else row.setBackground(null);
+                if(next){GradientDrawable highlight=new GradientDrawable();highlight.setColor(palette.selected);highlight.setCornerRadius(dp(8));row.setBackground(highlight);}else row.setBackground(null);
                 if(next)highlighted=true;
-                labels[i].setTextColor(next?0xFFFFFFFF:SAND);values[i].setTextColor(next?0xFFFFE2A0:0xFFFFFDF6);
+                labels[i].setTextColor(palette.ink);values[i].setTextColor(palette.ink);
             }
         }
-        nextPrayer.setText("");nextTiles.setVisibility(prayers==null?View.GONE:View.VISIBLE);nextTimeTiles.setVisibility(prayers==null?View.GONE:View.VISIBLE);
+        nextPrayer.setText(prayers==null?prayerSource:"");nextTiles.setVisibility(prayers==null?View.GONE:View.VISIBLE);nextTimeTiles.setVisibility(prayers==null?View.GONE:View.VISIBLE);
         if(prayers!=null){int n=kw.urtv.shared.CalendarData.next(prayers,minute);int target=prayers[n];boolean tomorrow=n==0&&minute>prayers[5];boolean estimated=!official;
-            if(tomorrow){kw.urtv.shared.RegionSchedule.Result d=schedule(now.toLocalDate().plusDays(1));target=d.times[0];estimated=!d.verified;}
-            int left=target+(tomorrow?1440:0)-minute;
+            if(tomorrow){kw.urtv.shared.RegionSchedule.Result d=schedule(now.toLocalDate().plusDays(1));if(d.times==null){nextPrayer.setText("المواقيت التالية غير متاحة");nextTimeTiles.setVisibility(View.GONE);nextTiles.setVisibility(View.GONE);return;}target=d.times[0];estimated=!d.verified;}
+            int left=kw.urtv.shared.PrayerCountdown.minutes(now,target,tomorrow);
             nextPrayer.setText("التالي · "+names[n]);
-            nextTimeTiles.update(kw.urtv.shared.TimeTiles.clock(target,options),kw.urtv.shared.TimeTiles.period(target,options),bold,0xFFFFFDF6,"موعد "+time(target));
-            nextTiles.update(kw.urtv.shared.TimeTiles.remaining(left,options),"",bold,0xFFFFFDF6,"متبقي "+left+" دقيقة");
+            nextTimeTiles.update(kw.urtv.shared.TimeTiles.clock(target,options),kw.urtv.shared.TimeTiles.period(target,options),bold,palette.ink,"موعد "+time(target));
+            nextTiles.update(kw.urtv.shared.TimeTiles.remaining(left,options),"",bold,palette.ink,"متبقي "+left+" دقيقة");
         }
-        weatherDetails.setText(city);
+        weatherDetails.setText(weatherPlace.name);
         try {
             JSONObject current=weatherData.getJSONObject("current"),daily=weatherData.getJSONObject("daily");
             double dust=weatherData.optDouble("dust",0);
+            weatherSymbol.update(current.getInt("weather_code"),dust,current.optInt("is_day",1)==0,palette.ink,palette.light?0xFF8A611E:0xFFE8C780);
             String description=dust>=400?"غبار كثيف":dust>=150?"غبار":weatherName(current.getInt("weather_code"));
             String temperature="\u2066"+ar(Math.round(current.getDouble("temperature_2m"))+"°")+"\u2069";
             SpannableString summary=new SpannableString(temperature+"   "+description);
-            summary.setSpan(new ForegroundColorSpan(SAND),0,temperature.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            summary.setSpan(new ForegroundColorSpan(palette.ink),0,temperature.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             condition.setText(summary);
-            condition.setTextColor(dust>=150?GOLD:SAND);
-            weatherDetails.setText(city+"  ·  "+ar(Math.round(daily.getJSONArray("temperature_2m_max").getDouble(0))+"° / "+Math.round(daily.getJSONArray("temperature_2m_min").getDouble(0))+"°"));
+            condition.setTextColor(dust>=150?palette.accent:palette.ink);
+            weatherDetails.setText(weatherPlace.name+"  ·  "+ar(Math.round(daily.getJSONArray("temperature_2m_max").getDouble(0))+"° / "+Math.round(daily.getJSONArray("temperature_2m_min").getDouble(0))+"°"));
             if(lastWeather>0&&System.currentTimeMillis()-lastWeather>3600000L)weatherDetails.append("\n"+ar("آخر تحديث قبل "+((System.currentTimeMillis()-lastWeather)/3600000L)+" ساعة"));
-        }catch(Exception e){condition.setText("الطقس غير متاح حالياً");}
+        }catch(Exception e){weatherSymbol.setVisibility(View.GONE);condition.setText("الطقس غير متاح حالياً");}
         for(int i=0;i<6;i++)values[i].setText(options.numbers(values[i].getText().toString()));
         nextPrayer.setText(options.numbers(nextPrayer.getText().toString()));condition.setText(options.numbers(condition.getText().toString()));weatherDetails.setText(options.numbers(weatherDetails.getText().toString()));
     }

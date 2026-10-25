@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+echo "Legacy device changes are blocked. Use tools/device_safety.py, then reviewed tools/install.py or tools/tv-manager/server.py. No device was changed." >&2
+exit 2
 # Start the TV's screensaver now, the ways Android allows over ADB, and say whether it really runs.
 #   optimize/start-saver.sh             prints «dream» (it runs) or «not started»; exit 1 if not started
 #   optimize/start-saver.sh --preview   if Android won't start it (some Android 14 sets refuse ADB), show
