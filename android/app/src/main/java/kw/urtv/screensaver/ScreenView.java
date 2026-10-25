@@ -112,7 +112,8 @@ final class ScreenView extends View {
                 BitmapFactory.Options options=new BitmapFactory.Options();options.inJustDecodeBounds=true;
                 try(InputStream stream=getContext().getAssets().open("backgrounds/"+name)){BitmapFactory.decodeStream(stream,null,options);}
                 float target=Math.max(width/(float)options.outWidth,height/(float)options.outHeight);
-                int sample=1;while(sample<=512 && sample*2L<=Math.floor(1.0/target))sample*=2;
+                int maxSample=(int)Math.min(1024,Math.floor(1.0/target));
+                int sample=1;while(sample<=512 && sample*2<=maxSample)sample*=2;
                 options.inJustDecodeBounds=false;options.inSampleSize=sample;options.inPreferredConfig=imageEdge<=1920?Bitmap.Config.RGB_565:Bitmap.Config.ARGB_8888;
                 try(InputStream stream=getContext().getAssets().open("backgrounds/"+name)){decoded=BitmapFactory.decodeStream(stream,null,options);}
                 if(decoded==null)return;

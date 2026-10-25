@@ -22,6 +22,8 @@ Workflows use read-only default tokens and pinned action commits. Contributions 
 
 ## Network and local-tool boundaries
 
+Settings import/export accepts only external system content providers, rejects file/private schemes and private normalized paths, and bounds the imported JSON size. A third-party document provider is not accepted by this security policy.
+
 Android connections use the platform TLS certificate and hostname validation; cleartext HTTP is disabled. Public weather/calendar data does not carry passwords or account credentials. Certificate pinning is intentionally not used for these third-party public services, to avoid breaking connectivity during certificate rotation; the platform trust store remains in force.
 
 Command-line tools accept local paths and developer-selected executables such as ADB/JAVA_HOME. These are trusted operator inputs, not fields exposed by the TV-manager HTTP API. Commands use argument arrays rather than a host shell. Do not run the tools with untrusted executable paths or environment variables. Legacy diagnostic scripts intentionally read local paths chosen by their operator.
