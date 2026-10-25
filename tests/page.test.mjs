@@ -63,7 +63,7 @@ for(const panel of ['prayers','forecast','none']){
  const {ctx,p,errors,requests}=await open('tv.html','widget=1&panel='+panel,{width:461,height:300,online:true});
  const r=await p.evaluate(()=>({bg:getComputedStyle(document.body).backgroundColor,hidden:[...document.querySelectorAll('.photo,.top,.clockwrap,.bottom')].every(e=>getComputedStyle(e).display==='none')}));
  check('home card '+panel+' is transparent and isolated',!errors.length&&r.bg==='rgba(0, 0, 0, 0)'&&r.hidden,errors.join(';'));
- check('home card '+panel+' fetches only its data',panel==='none'?requests.length===0:requests.every(u=>panel==='prayers'?u.hostname==='api.aladhan.com':u.hostname.includes('open-meteo.com')));
+ check('home card '+panel+' fetches only its data',panel==='none'?requests.length===0:requests.every(u=>panel==='prayers'?u.hostname==='api.aladhan.com':['api.open-meteo.com','air-quality-api.open-meteo.com'].includes(u.hostname)));
  await ctx.close();
 }
 // The native launcher reserves the right-hand top 80px for its clock/date and the area below for apps.

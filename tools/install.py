@@ -22,7 +22,7 @@ def address(value):
  return f'{host}:{n}'
 
 def download_installers(directory,version):
- if not re.fullmatch(r'\d+\.\d+\.\d+',version):raise ValueError('Invalid version')
+ if len(version)>32 or len(version.split('.'))!=3 or not all(part.isascii() and part.isdecimal() for part in version.split('.')):raise ValueError('Invalid version')
  directory.mkdir(parents=True,exist_ok=True)
  base=f'https://github.com/{REPO}/releases/download/v{version}/'
  with urllib.request.urlopen(base+f'KLightTV-{version}-SHA256SUMS.txt',timeout=30) as response:sums=response.read(16384).decode()

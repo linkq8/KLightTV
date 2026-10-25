@@ -28,3 +28,7 @@ optimize/lists/mine.txt
 *.log
 artifacts/
 .venv/
+
+# Locally generated signing credentials
+*signing-key-password.txt
+*keystore-base64.txt

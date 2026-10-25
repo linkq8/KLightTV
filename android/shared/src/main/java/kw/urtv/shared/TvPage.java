@@ -11,7 +11,7 @@ public abstract class TvPage extends Activity {
     protected LinearLayout list;protected Typeface regular,bold;
     @Override public void onCreate(Bundle b){super.onCreate(b);getWindow().getDecorView().setSystemUiVisibility(5894);regular=Typeface.createFromAsset(getAssets(),"fonts/Thmanyah-Regular.otf");bold=Typeface.createFromAsset(getAssets(),"fonts/Thmanyah-Medium.otf");
         ScrollView scroll=new ScrollView(this);scroll.setBackgroundColor(0xFF091610);scroll.setFillViewport(true);scroll.setVerticalScrollBarEnabled(false);
-        list=new LinearLayout(this);list.setOrientation(1);list.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);list.setPadding(dp(48),dp(30),dp(48),dp(32));scroll.addView(list);setContentView(scroll);
+        list=new LinearLayout(this);list.setOrientation(LinearLayout.VERTICAL);list.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);list.setPadding(dp(48),dp(30),dp(48),dp(32));scroll.addView(list);setContentView(scroll);
     }
     protected int dp(float n){return Math.round(n*getResources().getDisplayMetrics().density);}
     protected TextView text(String s,int size,int color){TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setTypeface(regular);t.setTextColor(color);t.setGravity(Gravity.RIGHT);t.setTextDirection(View.TEXT_DIRECTION_RTL);t.setIncludeFontPadding(false);return t;}

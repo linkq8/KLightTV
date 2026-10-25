@@ -76,6 +76,10 @@
 
 ![إعدادات KLightTV](https://raw.githubusercontent.com/linkq8/KLightTV/fix/prayer-location-context/docs/images/current-status/settings.png)
 
+## الأمان والمساهمة
+
+المستودع عام ومتاح للجميع. تعديلات الفرع الرئيسي تمر عبر طلب دمج وفحوص آلية، مع فحص الأسرار والثغرات والتبعيات. للإبلاغ بسرية عن مشكلة أمنية، راجع [سياسة الأمان](https://github.com/linkq8/KLightTV/blob/main/SECURITY.md). [ملخص المراجعة الأمنية](https://github.com/linkq8/KLightTV/blob/main/docs/SECURITY-REVIEW.md).
+
 ## التثبيت
 
 يتطلب **Android TV أو Google TV بنظام Android 8 أو أحدث** مع إمكانية اتصال ADB. صلاحيات النظام وتعيين الواجهة وتبديل المستخدمين تختلف بين الأجهزة.

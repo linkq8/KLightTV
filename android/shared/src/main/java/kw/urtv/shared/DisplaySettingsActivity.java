@@ -14,9 +14,9 @@ public class DisplaySettingsActivity extends TvPage {
     private void control(String label,Runnable change,int index){TextView t=button(label,()->{change.run();render(index);});t.setTextSize(15);t.setPadding(dp(12),dp(8),dp(12),dp(8));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.bottomMargin=dp(6);controls.addView(t,p);}
     private void render(int focus){
         title("خيارات القراءة","عاين التغييرات ثم احفظها · الرئيسية وشاشة التوقف");
-        LinearLayout body=new LinearLayout(this);body.setOrientation(0);body.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);list.addView(body,new LinearLayout.LayoutParams(-1,-2));
-        controls=new LinearLayout(this);controls.setOrientation(1);body.addView(controls,new LinearLayout.LayoutParams(0,-2,1.1f));
-        LinearLayout preview=new LinearLayout(this);preview.setOrientation(1);preview.setPadding(dp(18),dp(18),dp(18),dp(18));GradientDrawable bg=new GradientDrawable();bg.setCornerRadius(dp(12));bg.setColor(draft.contrast?0xFF030A06:android.graphics.Color.rgb(24-draft.dim*6,49-draft.dim*12,37-draft.dim*9));preview.setBackground(bg);LinearLayout.LayoutParams pp=new LinearLayout.LayoutParams(0,-2,1);pp.rightMargin=dp(24);body.addView(preview,pp);
+        LinearLayout body=new LinearLayout(this);body.setOrientation(LinearLayout.HORIZONTAL);body.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);list.addView(body,new LinearLayout.LayoutParams(-1,-2));
+        controls=new LinearLayout(this);controls.setOrientation(LinearLayout.VERTICAL);body.addView(controls,new LinearLayout.LayoutParams(0,-2,1.1f));
+        LinearLayout preview=new LinearLayout(this);preview.setOrientation(LinearLayout.VERTICAL);preview.setPadding(dp(18),dp(18),dp(18),dp(18));GradientDrawable bg=new GradientDrawable();bg.setCornerRadius(dp(12));bg.setColor(draft.contrast?0xFF030A06:android.graphics.Color.rgb(24-draft.dim*6,49-draft.dim*12,37-draft.dim*9));preview.setBackground(bg);LinearLayout.LayoutParams pp=new LinearLayout.LayoutParams(0,-2,1);pp.rightMargin=dp(24);body.addView(preview,pp);
         control("حجم النص · "+draft.size(draft.reading),()->draft.reading=(draft.reading+1)%3,0);
         control("مواقيت الصلاة · "+draft.size(draft.prayer),()->draft.prayer=(draft.prayer+1)%3,1);
         control("الصلاة القادمة · "+draft.size(draft.next),()->draft.next=(draft.next+1)%3,2);

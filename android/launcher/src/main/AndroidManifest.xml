@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Home screen adapted from github.com/mihirgupta0900/tv-home (MIT). -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingLeanbackLauncher">
 
     <uses-permission android:name="android.permission.INTERNET" />   <!-- hosted wallpapers, the optional card -->
     <!-- ADB-granted for Xiaomi's system-consumed Netflix button; filtered locally, never stored. -->
-    <uses-permission android:name="android.permission.READ_LOGS" />
+    <!-- Legacy optional remote support requires an explicit ADB grant; never auto-granted here. -->
+    <uses-permission android:name="android.permission.READ_LOGS" tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -37,7 +38,7 @@
         <package android:name="com.todtv.tod" />
     </queries>
 
-    <application android:supportsRtl="true"
+    <application android:usesCleartextTraffic="false" android:supportsRtl="true"
         android:label="@string/app_name"
         android:icon="@mipmap/ic_launcher"
         android:banner="@drawable/banner"
@@ -94,7 +95,7 @@
         <activity android:name="kw.urtv.shared.CalendarActivity" android:exported="true" android:screenOrientation="landscape" />
     <activity android:name=".ManageAppsActivity" android:exported="true" android:screenOrientation="landscape" />
 <activity android:name=".PersonalizeActivity" android:exported="true" android:screenOrientation="landscape" />
-<provider android:name=".PhotoProvider" android:authorities="kw.urtv.home.photos" android:exported="true" android:readPermission="kw.urtv.screensaver.READ_CONFIG" />
+<provider android:name=".PhotoProvider" android:authorities="kw.urtv.home.photos" android:exported="true" android:permission="kw.urtv.screensaver.READ_CONFIG" />
 <activity android:name="kw.urtv.shared.DisplaySettingsActivity" android:exported="false" android:screenOrientation="landscape" />
 <activity android:name="kw.urtv.shared.PerformanceActivity" android:exported="false" android:screenOrientation="landscape" />
 </application>

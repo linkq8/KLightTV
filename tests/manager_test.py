@@ -13,6 +13,11 @@ class Fake(mod.Manager):
   if a[0]=='pm':self.states[a[-1]]={'enable':1,'default-state':0,'disable-user':3,'disable':2,'disable-until-used':4}[a[1]];return 'new state'
   raise AssertionError(a)
 class Tests(unittest.TestCase):
+ def test_package_validation_is_bounded(self):
+  self.assertTrue(mod.valid_package('com.example.tv_app'))
+  for value in [None,1,'a'*100000,'com..example','com.example;reboot','com.例','example']:
+   self.assertFalse(mod.valid_package(value))
+
  def test_protected_and_injection(self):
   with tempfile.TemporaryDirectory() as d:
    m=Fake(d)

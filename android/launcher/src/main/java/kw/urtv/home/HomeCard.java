@@ -108,7 +108,7 @@ final class HomeCard {
         LinearLayout.LayoutParams detailParams=new LinearLayout.LayoutParams(-1,-2); detailParams.topMargin=dp(8);
         weather.addView(weatherDetails,detailParams);
         LinearLayout clocks=new LinearLayout(activity);clocks.setOrientation(LinearLayout.HORIZONTAL);clocks.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
-        LinearLayout remainingColumn=new LinearLayout(activity),nextColumn=new LinearLayout(activity);remainingColumn.setOrientation(1);nextColumn.setOrientation(1);
+        LinearLayout remainingColumn=new LinearLayout(activity),nextColumn=new LinearLayout(activity);remainingColumn.setOrientation(LinearLayout.VERTICAL);nextColumn.setOrientation(LinearLayout.VERTICAL);
         LinearLayout.LayoutParams remainingParams=new LinearLayout.LayoutParams(0,-2,1);remainingParams.rightMargin=dp(8);
         clocks.addView(remainingColumn,remainingParams);clocks.addView(nextColumn,new LinearLayout.LayoutParams(0,-2,1));
         for(LinearLayout column:new LinearLayout[]{remainingColumn,nextColumn}){column.setPadding(dp(8),dp(7),dp(8),dp(9));GradientDrawable card=new GradientDrawable();card.setColor(0xA0111F2B);card.setCornerRadius(dp(10));card.setStroke(dp(1),0x30D9C17B);column.setBackground(card);}
