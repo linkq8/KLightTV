@@ -38,7 +38,10 @@ OPTIONAL={
 }
 PROTECTED={'com.google.android.katniss','com.mediatek.partner.netflix','com.google.android.apps.mediashell','com.google.android.gms','com.google.android.gsf','com.android.vending','kw.urtv.home','kw.urtv.screensaver','com.google.android.packageinstaller','com.android.packageinstaller','com.android.permissioncontroller','com.google.android.permissioncontroller','com.android.systemui','android','com.android.bluetooth','com.android.tv.settings','com.google.android.tv.remote.service','com.liskovsoft.leankeyboard','com.google.android.inputmethod.latin'}
 LABELS={'com.google.android.katniss':'الميكروفون والبحث الصوتي','com.mediatek.partner.netflix':'MediaTek · خدمة Bluetooth مشتركة','com.google.android.apps.mediashell':'Chromecast','kw.urtv.home':'KLightTV · الرئيسية','kw.urtv.screensaver':'KLightTV · شاشة التوقف','com.android.vending':'متجر Google Play','com.google.android.gms':'خدمات Google Play'}
-PKG=re.compile(r'[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)+\Z')
+def valid_package(value):
+ if not isinstance(value,str) or len(value)>255:return False
+ parts=value.split('.')
+ return len(parts)>1 and all(part and all(c in 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_' for c in part) for part in parts)
 class Manager:
  def __init__(self,adb,serial,snapshot=None,history=None):
   self.adb=adb;self.serial=serial;self.snapshot=snapshot;self.history=pathlib.Path(history or pathlib.Path.home()/'.urtv-manager');self.lock=threading.Lock();self.items={};self.revision='';self.device='';self.identity={}
@@ -73,7 +76,7 @@ class Manager:
   seen=set()
   for c in changes:
    p=c.get('package','');action=c.get('action');item=self.items.get(p)
-   if not PKG.fullmatch(p) or p in seen or not item or item['protected']:raise ValueError('حزمة محمية أو غير معروفة')
+   if not valid_package(p) or p in seen or not item or item['protected']:raise ValueError('حزمة محمية أو غير معروفة')
    seen.add(p)
    if action not in ['enable','disable','background','uninstall']:raise ValueError('عملية غير معروفة')
    if action=='uninstall' and (p not in OPTIONAL or not item['system']):raise ValueError('الإزالة هنا لتطبيقات النظام الاختيارية فقط؛ تطبيق المستخدم يُزال من تأكيد Android على التلفزيون')
@@ -120,7 +123,7 @@ class Manager:
    # Restores all snapshotted entries, also covers a crash after mutation but before result logging.
    for s in reversed(record['states']):
     p=s['package']
-    if p in PROTECTED or not PKG.fullmatch(p):raise ValueError('حزمة محمية في سجل الاستعادة')
+    if p in PROTECTED or not valid_package(p):raise ValueError('حزمة محمية في سجل الاستعادة')
     try:
      if s['action']=='uninstall':
       reply=self.sh('cmd','package','install-existing','--user','0',p)

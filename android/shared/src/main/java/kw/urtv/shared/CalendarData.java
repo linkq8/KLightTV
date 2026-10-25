@@ -33,7 +33,9 @@ public final class CalendarData {
         String h=new JSONObject(payload).getString("html");
         if(!Pattern.compile("id=\"datepicker\"\\s+value=\""+date+"\"").matcher(h).find())throw new IOException("Date mismatch");
         Matcher m=Pattern.compile("class=\"item-prayer prayer_time\"\\s+data-time=\"(\\d\\d:\\d\\d):\\d\\d\"").matcher(h);JSONArray values=new JSONArray();while(m.find())values.put(m.group(1));
-        Matcher labels=Pattern.compile("<p>(.*?)</p>").matcher(h.split("class=\"ls-prayer")[0]);String hijri="";for(int i=0;i<3&&labels.find();i++)hijri=labels.group(1).trim();
+        // Scan tags monotonically; an unmatched opening tag must not restart a quadratic regex search.
+        int boundary=h.indexOf("class=\"ls-prayer");String labels=boundary<0?h:h.substring(0,boundary);String hijri="";int offset=0;
+        for(int i=0;i<3;i++){int start=labels.indexOf("<p>",offset);if(start<0)break;int end=labels.indexOf("</p>",start+3);if(end<0)break;hijri=labels.substring(start+3,end).trim();offset=end+4;}
         return new Day(date.toString(),new JSONObject().put("times",values).put("hijri",hijri));
     }
     public Day fetch(LocalDate date)throws Exception {
